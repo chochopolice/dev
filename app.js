@@ -1,8 +1,3 @@
-
-
-
-
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -18,16 +13,15 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Firebaseコンソールから取得した設定
-  const firebaseConfig = {
-    apiKey: "AIzaSyAcvtyuPSiX4vrx_BvfbTWAl6urQyoz2F4",
-    authDomain: "taskview-3bb4f.firebaseapp.com",
-    projectId: "taskview-3bb4f",
-    storageBucket: "taskview-3bb4f.firebasestorage.app",
-    messagingSenderId: "287565583168",
-    appId: "1:287565583168:web:f3b1bf84a32279274ba0a5",
-    measurementId: "G-DCDDBM6G94"
-  };
-
+const firebaseConfig = {
+  apiKey: "AIzaSyAcvtyuPSiX4vrx_BvfbTWAl6urQyoz2F4",
+  authDomain: "taskview-3bb4f.firebaseapp.com",
+  projectId: "taskview-3bb4f",
+  storageBucket: "taskview-3bb4f.firebasestorage.app",
+  messagingSenderId: "287565583168",
+  appId: "1:287565583168:web:f3b1bf84a32279274ba0a5",
+  measurementId: "G-DCDDBM6G94"
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -82,13 +76,29 @@ async function saveTask() {
 }
 
 async function loadTasks() {
-  const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
-  const snapshot = await getDocs(q);
+  try {
+    const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
 
-  tasks = snapshot.docs.map(docSnap => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+    tasks = snapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }));
+  } catch (error) {
+    console.error("createdAt順の読み込みに失敗したため、通常取得に切り替えます。", error);
+
+    const fallbackSnapshot = await getDocs(collection(db, "tasks"));
+    tasks = fallbackSnapshot.docs
+      .map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      }))
+      .sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() ?? 0;
+        const bTime = b.createdAt?.toMillis?.() ?? 0;
+        return bTime - aTime;
+      });
+  }
 
   renderTasks();
 }
@@ -172,7 +182,6 @@ function clearForm() {
   status.value = "未対応";
   memo.value = "";
 }
-
 
 function getStatusClass(taskStatus) {
   switch (taskStatus) {
