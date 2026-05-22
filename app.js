@@ -163,6 +163,20 @@ window.removeTask = async function(id) {
   await loadTasks();
 };
 
+function getStatusClass(taskStatus) {
+  switch (taskStatus) {
+    case "未対応":
+    case "未完了":
+      return "status-todo";
+    case "対応中":
+      return "status-doing";
+    case "完了":
+      return "status-done";
+    default:
+      return "status-done";
+  }
+}
+
 function clearForm() {
   taskId.value = "";
   title.value = "";
@@ -172,6 +186,7 @@ function clearForm() {
   status.value = "未対応";
   memo.value = "";
 }
+
 
 
 function getStatusClass(taskStatus) {
