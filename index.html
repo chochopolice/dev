@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>社内タスク管理ツール</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>社内タスク管理ツール</h1>
+
+    <section class="card">
+      <h2>タスク登録・編集</h2>
+
+      <input type="hidden" id="taskId" />
+
+      <label>タスク名</label>
+      <input type="text" id="title" placeholder="例：見積書作成" />
+
+      <label>タスク内容</label>
+      <textarea id="description" placeholder="タスクの詳細を入力"></textarea>
+
+      <label>担当者名</label>
+      <input type="text" id="assignee" placeholder="例：山田" />
+
+      <label>期限日</label>
+      <input type="date" id="dueDate" />
+
+      <label>ステータス</label>
+      <select id="status">
+        <option value="未対応">未対応</option>
+        <option value="対応中">対応中</option>
+        <option value="完了">完了</option>
+      </select>
+
+      <label>メモ</label>
+      <textarea id="memo" placeholder="補足メモ"></textarea>
+
+      <button id="saveBtn">保存</button>
+      <button id="clearBtn" class="secondary">入力クリア</button>
+    </section>
+
+    <section class="card">
+      <h2>検索・絞り込み</h2>
+      <input type="text" id="searchInput" placeholder="タスク名・担当者・メモで検索" />
+
+      <select id="statusFilter">
+        <option value="">すべて</option>
+        <option value="未対応">未対応</option>
+        <option value="対応中">対応中</option>
+        <option value="完了">完了</option>
+      </select>
+    </section>
+
+    <section class="card">
+      <h2>タスク一覧</h2>
+      <div id="taskList"></div>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
