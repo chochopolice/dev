@@ -77,7 +77,19 @@ button.secondary {
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
-  background: #e5e7eb;
+  color: #fff;
+}
+
+.status.status-todo {
+  background: #f59e0b;
+}
+
+.status.status-doing {
+  background: #16a34a;
+}
+
+.status.status-done {
+  background: #6b7280;
 }
 
 .actions button {

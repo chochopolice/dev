@@ -125,7 +125,7 @@ function renderTasks() {
     div.innerHTML = `
       <div class="task-header">
         <h3>${escapeHtml(task.title || "")}</h3>
-        <span class="status">${escapeHtml(task.status || "")}</span>
+        <span class="status ${getStatusClass(task.status)}">${escapeHtml(task.status || "")}</span>
       </div>
       <p><strong>内容：</strong>${escapeHtml(task.description || "")}</p>
       <p><strong>担当者：</strong>${escapeHtml(task.assignee || "")}</p>
@@ -162,6 +162,20 @@ window.removeTask = async function(id) {
   await deleteDoc(doc(db, "tasks", id));
   await loadTasks();
 };
+
+function getStatusClass(taskStatus) {
+  switch (taskStatus) {
+    case "未対応":
+    case "未完了":
+      return "status-todo";
+    case "対応中":
+      return "status-doing";
+    case "完了":
+      return "status-done";
+    default:
+      return "status-done";
+  }
+}
 
 function clearForm() {
   taskId.value = "";
