@@ -125,7 +125,7 @@ function renderTasks() {
     div.innerHTML = `
       <div class="task-header">
         <h3>${escapeHtml(task.title || "")}</h3>
-        <span class="status">${escapeHtml(task.status || "")}</span>
+        <span class="status ${getStatusClass(task.status)}">${escapeHtml(task.status || "")}</span>
       </div>
       <p><strong>内容：</strong>${escapeHtml(task.description || "")}</p>
       <p><strong>担当者：</strong>${escapeHtml(task.assignee || "")}</p>
@@ -171,6 +171,20 @@ function clearForm() {
   dueDate.value = "";
   status.value = "未対応";
   memo.value = "";
+}
+
+
+function getStatusClass(taskStatus) {
+  switch (taskStatus) {
+    case "完了":
+      return "status-completed";
+    case "対応中":
+      return "status-inprogress";
+    case "未対応":
+      return "status-pending";
+    default:
+      return "";
+  }
 }
 
 function escapeHtml(str) {
