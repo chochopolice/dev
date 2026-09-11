@@ -1,0 +1,2498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マッスルアバター v5 — 美少女アバター</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#181c24; --panel2:#212630; --line:#2e3545;
+    --text:#e9e4dc; --muted:#8b93a1; --accent:#f97632; --accent-soft:rgba(249,118,50,.14);
+    --gold:#f5c453; --xp:#4fa8e8; --voice:#7ed0a8;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  header{
+    display:flex; align-items:center; gap:14px;
+    padding:10px 18px; border-bottom:1px solid var(--line); flex:0 0 auto;
+  }
+  .lvBadge{display:flex; align-items:baseline; gap:5px; flex:0 0 auto; font-family:var(--mono)}
+  .lvBadge .k{font-size:10px; color:var(--muted); letter-spacing:.14em}
+  .lvBadge .n{font-size:22px; font-weight:700; color:var(--accent); line-height:1}
+  .xpWrap{flex:1; min-width:70px; max-width:260px}
+  .xpBar{height:7px; background:var(--panel2); border-radius:99px; overflow:hidden; border:1px solid var(--line)}
+  .xpFill{height:100%; width:0%; background:linear-gradient(90deg,#2f7fbf,var(--xp)); transition:width .5s cubic-bezier(.2,.8,.3,1)}
+  .xpTxt{font-size:10px; color:var(--muted); font-family:var(--mono); margin-top:3px}
+  .goldBox{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:15px; color:var(--gold); flex:0 0 auto}
+  .goldBox .coin{width:15px;height:15px;border-radius:50%;background:var(--gold);box-shadow:inset -2px -2px 0 rgba(0,0,0,.22)}
+
+  main{flex:1; display:flex; min-height:0}
+  #stage{flex:1.15; position:relative; min-width:0; touch-action:none; overscroll-behavior:contain;
+    background:radial-gradient(120% 90% at 50% 18%, #2a2b3a 0%, #191b25 46%, #0e1116 100%)}
+  #stage canvas{display:block}
+  #hint{position:absolute; left:14px; bottom:12px; font-size:11px; color:var(--muted);
+    background:rgba(14,17,22,.55); padding:4px 10px; border-radius:8px; pointer-events:none}
+  #modeBtn,#poseBtn{position:absolute; right:12px; font:inherit; font-size:11.5px;
+    background:rgba(24,28,36,.8); color:var(--muted); border:1px solid var(--line);
+    border-radius:8px; padding:6px 12px; cursor:pointer}
+  #modeBtn{top:10px}
+  #poseBtn{top:44px}
+  #modeBtn:hover,#poseBtn:hover{color:var(--text); border-color:var(--accent)}
+  #flashLabel{position:absolute; left:50%; top:14px; transform:translateX(-50%);
+    font-size:13px; font-weight:700; color:var(--accent); letter-spacing:.05em;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+    text-shadow:0 0 14px rgba(249,118,50,.55); white-space:nowrap}
+  #lvUp{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:8px; pointer-events:none; opacity:0;
+    background:radial-gradient(circle,rgba(249,118,50,.16),transparent 62%)}
+  #lvUp.show{animation:lvup 2.6s ease-out}
+  @keyframes lvup{0%{opacity:0;transform:scale(.85)}12%{opacity:1;transform:scale(1)}78%{opacity:1}100%{opacity:0}}
+  #lvUp .t{font-size:34px;font-weight:800;letter-spacing:.1em;color:var(--gold);text-shadow:0 0 26px rgba(245,196,83,.65)}
+  #lvUp .s{font-size:15px;color:var(--text);font-family:var(--mono)}
+  #lvUp .g{font-size:13px;color:var(--gold);font-family:var(--mono)}
+
+  aside{flex:0 0 396px; max-width:48%; border-left:1px solid var(--line);
+    background:var(--panel); display:flex; flex-direction:column; min-height:0}
+  .tabs{display:flex; flex:0 0 auto; border-bottom:1px solid var(--line); overflow-x:auto}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:1 0 auto; background:none; border:none; color:var(--muted); font:inherit;
+    font-size:11px; padding:11px 9px; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap}
+  .tabs button.active{color:var(--text); border-bottom-color:var(--accent)}
+  .pane{flex:1; overflow-y:auto; padding:16px; display:none; min-height:0}
+  .pane.active{display:block}
+
+  label.field{display:block; font-size:11px; color:var(--muted); margin:10px 0 4px}
+  select,input[type=number]{width:100%; background:var(--panel2); border:1px solid var(--line);
+    color:var(--text); border-radius:8px; padding:8px 10px; font:inherit; font-size:13px}
+  select:focus,input:focus{outline:2px solid var(--accent); outline-offset:-1px}
+  .row3{display:flex; gap:8px}
+  .row3>div{flex:1}
+  .contrib{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; min-height:24px}
+  .chip{font-size:11px; padding:3px 9px; border-radius:99px; background:var(--accent-soft);
+    color:var(--accent); border:1px solid rgba(249,118,50,.35)}
+  .btn{width:100%; margin-top:14px; background:var(--accent); color:#1a120c; border:none;
+    font:inherit; font-weight:700; font-size:14px; padding:12px; border-radius:10px; cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:none; border:1px solid var(--line); color:var(--muted); font-weight:400; font-size:12px; padding:8px}
+  .rewardHint{font-size:10.5px; color:var(--muted); text-align:center; margin-top:6px; font-family:var(--mono)}
+
+  #logList{margin-top:16px}
+  .logItem{display:flex; align-items:center; gap:8px; font-size:12px; padding:8px 10px;
+    border:1px solid var(--line); border-radius:8px; margin-bottom:6px; background:var(--panel2)}
+  .logItem .nm{flex:1}
+  .logItem .num{font-family:var(--mono); color:var(--muted); font-size:11px}
+  .logItem button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 2px}
+  .empty{font-size:12px; color:var(--muted); text-align:center; padding:18px 0; line-height:1.7}
+
+  .grp{font-size:11px; color:var(--accent); letter-spacing:.1em; margin:18px 0 8px}
+  .grp:first-of-type{margin-top:2px}
+  .sl{display:flex; align-items:center; gap:10px; margin-bottom:7px}
+  .sl label{flex:0 0 108px; font-size:12px; cursor:pointer}
+  .sl label:hover{color:var(--accent)}
+  .sl input[type=range]{flex:1; accent-color:var(--accent); height:18px}
+  .sl .v{flex:0 0 46px; text-align:right; font-family:var(--mono); font-size:11.5px; color:var(--muted)}
+  .note{font-size:10.5px; color:var(--muted); margin-bottom:10px; line-height:1.65}
+
+  .opts{display:flex; flex-wrap:wrap; gap:6px}
+  .opt{background:var(--panel2); border:1px solid var(--line); color:var(--text); font:inherit;
+    font-size:11.5px; padding:6px 11px; border-radius:8px; cursor:pointer}
+  .opt:hover{border-color:var(--accent)}
+  .opt.sel{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+  .opt.locked{color:var(--muted); cursor:not-allowed; opacity:.55}
+  .swatches{display:flex; flex-wrap:wrap; gap:7px}
+  .sw{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);cursor:pointer;padding:0}
+  .sw.sel{border-color:var(--accent); box-shadow:0 0 0 2px rgba(249,118,50,.25)}
+
+  .shopItem{display:flex; align-items:center; gap:10px; border:1px solid var(--line);
+    background:var(--panel2); border-radius:10px; padding:10px 12px; margin-bottom:7px}
+  .shopItem .info{flex:1; min-width:0}
+  .shopItem .nm{font-size:13px}
+  .shopItem .ds{font-size:10.5px; color:var(--muted); margin-top:2px}
+  .shopItem .buy{background:var(--gold); color:#2a1e05; border:none; font:inherit; font-weight:700;
+    font-size:12px; padding:7px 12px; border-radius:8px; cursor:pointer; white-space:nowrap; font-family:var(--mono)}
+  .shopItem .buy:disabled{background:var(--panel); color:var(--muted); cursor:not-allowed}
+  .shopItem .owned{font-size:11px; color:var(--muted); white-space:nowrap; font-family:var(--mono)}
+  .shopItem .lvreq{color:var(--accent)}
+
+  .stat{display:flex; justify-content:space-between; font-size:13px; padding:9px 0; border-bottom:1px solid var(--line)}
+  .stat .v{font-family:var(--mono); color:var(--accent)}
+
+  .toggle{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:9px 0; border-bottom:1px solid var(--line); font-size:13px}
+  .sw2{position:relative; width:44px; height:24px; background:var(--panel2); border:1px solid var(--line);
+    border-radius:99px; cursor:pointer; flex:0 0 auto; transition:background .2s}
+  .sw2::after{content:""; position:absolute; top:3px; left:3px; width:16px; height:16px;
+    border-radius:50%; background:var(--muted); transition:transform .2s, background .2s}
+  .sw2.on{background:rgba(249,118,50,.28); border-color:var(--accent)}
+  .sw2.on::after{transform:translateX(20px); background:var(--accent)}
+
+  @media(max-width:780px){
+    main{flex-direction:column}
+    #stage{flex:0 0 44vh}
+    aside{flex:1; max-width:none; border-left:none; border-top:1px solid var(--line)}
+    header{gap:10px; padding:9px 12px}
+    .xpWrap{max-width:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="lvBadge"><span class="k">LV</span><span class="n" id="lvNum">1</span></div>
+  <div class="xpWrap">
+    <div class="xpBar"><div class="xpFill" id="xpFill"></div></div>
+    <div class="xpTxt" id="xpTxt">0 / 100 XP</div>
+  </div>
+  <div class="goldBox"><span class="coin"></span><span id="goldNum">0</span></div>
+</header>
+
+<main>
+  <div id="stage">
+    <div id="flashLabel"></div>
+    <button id="modeBtn">表示: アバター</button>
+    <button id="poseBtn">動作: ON</button>
+    <div id="hint">ドラッグで回転・ピンチで拡大縮小 / 種目を選ぶとその動きをします</div>
+    <div id="lvUp">
+      <div class="t">LEVEL UP!</div>
+      <div class="s" id="lvUpTxt">Lv.2</div>
+      <div class="g" id="lvUpGold">+100 G</div>
+    </div>
+  </div>
+
+  <aside>
+    <div class="tabs">
+      <button class="active" data-pane="log">記録</button>
+      <button data-pane="status">ステータス</button>
+      <button data-pane="avatar">アバター</button>
+      <button data-pane="shop">ショップ</button>
+      <button data-pane="parts">部位</button>
+      <button data-pane="settings">設定</button>
+    </div>
+
+    <div class="pane active" id="pane-log">
+      <label class="field">種目</label>
+      <select id="exSel"></select>
+      <div class="contrib" id="contrib"></div>
+      <div class="note" style="margin-top:8px">選んだ種目の動作をアバターが実演します。画面右上の「動作」ボタンで停止できます。</div>
+      <div class="row3">
+        <div><label class="field">重量 (kg)</label><input type="number" id="inKg" value="20" min="0" step="2.5"></div>
+        <div><label class="field">セット</label><input type="number" id="inSet" value="3" min="1" max="20"></div>
+        <div><label class="field">レップ</label><input type="number" id="inRep" value="10" min="1" max="50"></div>
+      </div>
+      <button class="btn" id="addLog">記録する</button>
+      <div class="rewardHint" id="rewardHint">獲得予定: +0 XP / +0 G</div>
+      <div id="logList"><div class="empty">まだ記録がありません。<br>記録するとXPとゴールドが手に入ります。</div></div>
+      <button class="btn ghost" id="clearLogs">記録をすべて削除</button>
+    </div>
+
+    <div class="pane" id="pane-status">
+      <div class="grp">トレーニング</div>
+      <div class="stat"><span>累計記録数</span><span class="v" id="stLogs">0</span></div>
+      <div class="stat"><span>累計ボリューム</span><span class="v" id="stVol">0 kg</span></div>
+      <div class="stat"><span>総合成長度</span><span class="v" id="stGrowth">0 %</span></div>
+      <div class="stat"><span>最も育った部位</span><span class="v" id="stTop">—</span></div>
+      <div class="grp">プレイヤー</div>
+      <div class="stat"><span>レベル</span><span class="v" id="stLv">1</span></div>
+      <div class="stat"><span>累計XP</span><span class="v" id="stXp">0</span></div>
+      <div class="stat"><span>所持ゴールド</span><span class="v" id="stGold">0</span></div>
+      <div class="stat"><span>所持アイテム</span><span class="v" id="stItems">0</span></div>
+      <div class="grp">体格</div>
+      <label class="field">身長 (cm)</label>
+      <input type="number" id="inHeight" value="158" min="140" max="210">
+      <label class="field">体重 (kg)</label>
+      <input type="number" id="inWeight" value="50" min="35" max="130">
+      <label class="field">自重種目(0kg入力時)は体重×種目係数で換算されます</label>
+    </div>
+
+    <div class="pane" id="pane-avatar">
+      <div class="note">ショップで買ったアイテムはここで装備できます。</div>
+      <div id="customHost"></div>
+    </div>
+
+    <div class="pane" id="pane-shop">
+      <div class="note">トレーニングで貯めたゴールドでアイテムを購入できます。一部はレベル解放が必要です。</div>
+      <div id="shopHost"></div>
+    </div>
+
+    <div class="pane" id="pane-parts">
+      <div class="note">部位名をクリックすると、その部位の頂点重みマップがハイライトされます(解剖モード推奨)。</div>
+      <div id="sliders"></div>
+    </div>
+
+    <div class="pane" id="pane-settings">
+      <div class="grp">サウンド</div>
+      <div class="toggle"><span>BGM</span><div class="sw2" id="tgBgm"></div></div>
+      <div class="sl"><label>BGM音量</label><input type="range" id="volBgm" min="0" max="100" value="45"><span class="v" id="volBgmV">45</span></div>
+      <div class="sl"><label>効果音</label><input type="range" id="volSfx" min="0" max="100" value="80"><span class="v" id="volSfxV">80</span></div>
+
+      <div class="grp">ボイス</div>
+      <div class="toggle"><span>音声ガイド</span><div class="sw2" id="tgVoice"></div></div>
+      <div class="sl"><label>ボイス音量</label><input type="range" id="volVoice" min="0" max="100" value="90"><span class="v" id="volVoiceV">90</span></div>
+      <label class="field">キャラクター</label>
+      <select id="voiceStyle">
+        <option value="coach">熱血お姉さんコーチ</option>
+        <option value="cool">クールな女性トレーナー</option>
+        <option value="cheer">元気な応援ちゃん</option>
+        <option value="drill">スパルタ女教官</option>
+      </select>
+      <label class="field">読み上げ音声</label>
+      <select id="voicePick"><option>読み込み中…</option></select>
+      <div class="sl"><label>話す速さ</label><input type="range" id="voiceRate" min="60" max="160" value="105"><span class="v" id="voiceRateV">1.05</span></div>
+      <div class="sl"><label>声の高さ</label><input type="range" id="voicePitch" min="50" max="180" value="125"><span class="v" id="voicePitchV">1.25</span></div>
+      <button class="btn ghost" id="voiceTest">ボイスをテスト再生</button>
+
+      <div class="grp">成長表現</div>
+      <div class="sl"><label>バルクアップ倍率</label><input type="range" id="bulkSl" min="10" max="100" value="32"><span class="v" id="bulkV">3.2x</span></div>
+      <div class="note">1.0xが解剖学的に控えめな変化、10.0xがフルパンプ表現です。初期値は3.2x。<br>倍率を上げると隆起の分布も自動的に広がるため、トゲ状にならず全身が太くなる方向に膨らみます。</div>
+    </div>
+  </aside>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+
+/* ==========================================================
+   1. マスタ定義
+   ========================================================== */
+const PARTS = {
+  chestUpper:{label:"大胸筋上部", grp:"胸", tier:"medium"},
+  chestLower:{label:"大胸筋中下部", grp:"胸", tier:"medium"},
+  deltFront:{label:"三角筋前部", grp:"肩", tier:"small"},
+  deltSide:{label:"三角筋側部", grp:"肩", tier:"small"},
+  deltRear:{label:"三角筋後部", grp:"肩", tier:"small"},
+  biceps:{label:"上腕二頭筋", grp:"腕", tier:"small"},
+  triceps:{label:"上腕三頭筋", grp:"腕", tier:"small"},
+  forearm:{label:"前腕", grp:"腕", tier:"small"},
+  lats:{label:"広背筋", grp:"背中", tier:"large"},
+  traps:{label:"僧帽筋", grp:"背中", tier:"medium"},
+  erectors:{label:"脊柱起立筋", grp:"背中", tier:"medium"},
+  abs:{label:"腹直筋", grp:"体幹", tier:"medium"},
+  obliques:{label:"腹斜筋", grp:"体幹", tier:"small"},
+  quads:{label:"大腿四頭筋", grp:"脚", tier:"large"},
+  hams:{label:"ハム・臀部", grp:"脚", tier:"large"},
+  calves:{label:"カーフ", grp:"脚", tier:"small"},
+};
+const PART_IDS = Object.keys(PARTS);
+const TIERS = {small:[150,4500], medium:[300,9000], large:[500,15000]};
+
+const EXERCISES = [
+  {name:"ベンチプレス", c:{chestLower:.5, chestUpper:.1, deltFront:.2, triceps:.2}},
+  {name:"インクラインベンチプレス", c:{chestUpper:.55, deltFront:.25, triceps:.2}},
+  {name:"ダンベルフライ", c:{chestLower:.7, chestUpper:.2, deltFront:.1}},
+  {name:"ショルダープレス", c:{deltFront:.4, deltSide:.4, triceps:.2}},
+  {name:"サイドレイズ", c:{deltSide:.9, traps:.1}},
+  {name:"リアレイズ", c:{deltRear:.8, traps:.2}},
+  {name:"アームカール", c:{biceps:.8, forearm:.2}},
+  {name:"ハンマーカール", c:{biceps:.5, forearm:.5}},
+  {name:"トライセプスプレスダウン", c:{triceps:1}},
+  {name:"ラットプルダウン", c:{lats:.6, biceps:.25, deltRear:.15}},
+  {name:"懸垂", c:{lats:.5, biceps:.3, forearm:.2}, bw:1},
+  {name:"ベントオーバーロウ", c:{lats:.4, traps:.25, erectors:.2, biceps:.15}},
+  {name:"デッドリフト", c:{erectors:.35, hams:.3, lats:.15, traps:.1, forearm:.1}},
+  {name:"スクワット", c:{quads:.5, hams:.35, erectors:.15}},
+  {name:"レッグプレス", c:{quads:.6, hams:.4}},
+  {name:"レッグエクステンション", c:{quads:1}},
+  {name:"レッグカール", c:{hams:1}},
+  {name:"カーフレイズ", c:{calves:1}, bw:1},
+  {name:"腹筋クランチ", c:{abs:.9, obliques:.1}, bw:.4},
+  {name:"サイドベンド", c:{obliques:1}},
+];
+
+const SKIN_COLORS = ["#fce4d2","#f7d0b4","#eeb691","#dc9a6e","#b8784c","#8e5735"];
+const HAIR_COLORS = ["#a8705a","#7a4a3a","#4a3226","#2b2028","#dcb85e","#efe6d2","#d98aa0","#c04a6c","#b9a3e3","#5a6fb0","#3f9484"];
+const HAIRTIP_COLORS = ["#d98aa0","#e8b0be","#c9a08c","#a8705a","#7a4a3a","#dcb85e","#efe6d2","#b9a3e3"];
+const EYE_COLORS  = ["#a3673a","#8a5024","#4a86c8","#3f9470","#8a5ac0","#c04a52","#2f3a4a"];
+const CLOTH_COLORS = ["#39404f","#242a36","#b9a3e3","#e05a86","#f2e7ec","#7050ac","#3f9f8a","#f5c453"];
+
+const CATALOG = {
+  hair:{label:"髪型", items:[
+    {id:"hair_twin", name:"ツインテール", free:true},
+    {id:"hair_long", name:"ロング", free:true},
+    {id:"hair_bob", name:"ボブ", free:true},
+    {id:"hair_pony", name:"ポニーテール", free:true},
+    {id:"hair_bun", name:"お団子", price:220},
+    {id:"hair_side", name:"サイドテール", price:400, lv:3},
+    {id:"hair_wavy", name:"ウェーブロング", price:600, lv:5},
+  ]},
+  eyes:{label:"目", items:[
+    {id:"eyes_round", name:"まる目", free:true},
+    {id:"eyes_tare", name:"たれ目", free:true},
+    {id:"eyes_tsuri", name:"つり目", free:true},
+    {id:"eyes_calm", name:"クール", free:true},
+    {id:"eyes_sparkle", name:"きらきら", price:280, lv:3},
+  ]},
+  nose:{label:"鼻", items:[
+    {id:"nose_tiny", name:"ちょこん", free:true},
+    {id:"nose_soft", name:"やわらか", free:true},
+    {id:"nose_slim", name:"すっと", free:true},
+  ]},
+  mouth:{label:"口", items:[
+    {id:"mouth_smile", name:"スマイル", free:true},
+    {id:"mouth_small", name:"小さめ", free:true},
+    {id:"mouth_grit", name:"食いしばり", free:true},
+    {id:"mouth_open", name:"元気", free:true},
+  ]},
+  top:{label:"トップス", items:[
+    {id:"top_bra", name:"スポーツブラ", free:true},
+    {id:"top_tank", name:"タンクトップ", free:true},
+    {id:"top_tee", name:"Tシャツ", free:true},
+    {id:"top_crop", name:"クロップトップ", free:true},
+    {id:"top_hoodie", name:"パーカー", price:750, lv:5},
+  ]},
+  bottom:{label:"ボトムス", items:[
+    {id:"btm_leggings", name:"レギンス", free:true},
+    {id:"btm_shorts", name:"ショートパンツ", free:true},
+    {id:"btm_bike", name:"バイクショーツ", price:260},
+    {id:"btm_joggers", name:"ジョガーパンツ", price:500, lv:4},
+  ]},
+  shoes:{label:"シューズ", items:[
+    {id:"shoes_socks", name:"ソックス", free:true},
+    {id:"shoes_none", name:"はだし", free:true},
+    {id:"shoes_sneaker", name:"スニーカー", price:300},
+    {id:"shoes_high", name:"ハイカットシューズ", price:520, lv:4},
+  ]},
+  head:{label:"ヘッドギア", items:[
+    {id:"head_none", name:"なし", free:true},
+    {id:"head_band", name:"ヘアバンド", price:150},
+    {id:"head_ribbon", name:"リボン", price:260, lv:2},
+    {id:"head_cap", name:"キャップ", price:320, lv:2},
+    {id:"head_beanie", name:"ニット帽", price:280, lv:2},
+  ]},
+  face:{label:"アイウェア", items:[
+    {id:"face_none", name:"なし", free:true},
+    {id:"face_glasses", name:"メガネ", price:300, lv:2},
+    {id:"face_shades", name:"サングラス", price:600, lv:4},
+  ]},
+  hands:{label:"ハンド", items:[
+    {id:"hands_none", name:"なし", free:true},
+    {id:"hands_wraps", name:"リストバンド", price:220},
+    {id:"hands_gloves", name:"トレーニンググローブ", price:400, lv:2},
+  ]},
+  waist:{label:"ウエスト", items:[
+    {id:"waist_none", name:"なし", free:true},
+    {id:"waist_belt", name:"トレーニングベルト", price:800, lv:6},
+  ]},
+};
+const CAT_IDS = Object.keys(CATALOG);
+function findItem(id){
+  for(const c of CAT_IDS){ const it = CATALOG[c].items.find(i=>i.id===id); if(it) return {cat:c, item:it}; }
+  return null;
+}
+
+/* ==========================================================
+   2. 状態
+   ========================================================== */
+const state = {
+  logs:[], target:{}, current:{}, flash:{},
+  heightCm:158, weightKg:50,
+  level:1, xp:0, totalXp:0, gold:0,
+  owned:new Set(),
+  equip:{hair:"hair_twin", eyes:"eyes_round", nose:"nose_tiny", mouth:"mouth_open",
+         top:"top_crop", bottom:"btm_leggings", shoes:"shoes_socks",
+         head:"head_none", face:"face_none", hands:"hands_none", waist:"waist_none"},
+  skin:"#fce4d2", hairColor:"#a8705a", hairTip:"#d98aa0", eyeColor:"#a3673a",
+  topColor:"#39404f", bottomColor:"#1c202a", shoeColor:"#e05a86",
+  anatomyMode:false,
+  bulk:3.2,
+};
+PART_IDS.forEach(p=>{state.target[p]=0; state.current[p]=0; state.flash[p]=0;});
+CAT_IDS.forEach(c=>CATALOG[c].items.forEach(i=>{ if(i.free) state.owned.add(i.id); }));
+
+const xpNeed = lv => Math.round(100*Math.pow(lv,1.45));
+const goldReward = lv => 50 + lv*25;
+const xpFromVolume = v => Math.max(1, Math.round(v/25));
+const goldFromVolume = v => Math.max(1, Math.round(v/200));
+
+/* ==========================================================
+   3. オーディオ(BGM / SE)+ ボイス
+   ========================================================== */
+const Audio2 = (()=>{
+  let ctx=null, master=null, bgmGain=null, sfxGain=null;
+  let bgmOn=false, timer=null, step=0, nextTime=0;
+  let bgmVol=.45, sfxVol=.80;
+
+  function init(){
+    if(ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain(); master.gain.value = 1; master.connect(ctx.destination);
+    bgmGain = ctx.createGain(); bgmGain.gain.value = 0; bgmGain.connect(master);
+    sfxGain = ctx.createGain(); sfxGain.gain.value = sfxVol; sfxGain.connect(master);
+  }
+  function resume(){ init(); if(ctx.state === "suspended") ctx.resume(); }
+
+  function tone(freq,t,dur,type,vol,dest){
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type||"sine"; o.frequency.setValueAtTime(freq,t);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(vol,t+.012);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(dest||sfxGain);
+    o.start(t); o.stop(t+dur+.05);
+  }
+  function noise(t,dur,vol,freq,dest){
+    const len=Math.max(1,Math.floor(ctx.sampleRate*dur));
+    const buf=ctx.createBuffer(1,len,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+    const s=ctx.createBufferSource(); s.buffer=buf;
+    const f=ctx.createBiquadFilter(); f.type="highpass"; f.frequency.value=freq||3000;
+    const g=ctx.createGain(); g.gain.value=vol;
+    s.connect(f); f.connect(g); g.connect(dest||sfxGain);
+    s.start(t);
+  }
+
+  function sfxRecord(){
+    resume(); const t=ctx.currentTime;
+    noise(t,.12,.22,2200);
+    tone(180,t,.18,"square",.16);
+    [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,t+.05+i*.055,.22,"triangle",.17));
+  }
+  function sfxLevelUp(){
+    resume(); const t=ctx.currentTime;
+    [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>{
+      tone(f,t+i*.11,.5,"triangle",.22); tone(f/2,t+i*.11,.5,"sine",.12);
+    });
+    tone(1567.98,t+.58,.9,"triangle",.2); noise(t+.58,.5,.1,5000);
+  }
+  function sfxBuy(){ resume(); const t=ctx.currentTime;
+    tone(880,t,.1,"triangle",.2); tone(1318.5,t+.07,.18,"triangle",.2); noise(t,.06,.1,6000); }
+  function sfxClick(){ resume(); tone(660,ctx.currentTime,.05,"square",.07); }
+  function sfxDeny(){ resume(); const t=ctx.currentTime;
+    tone(180,t,.16,"sawtooth",.13); tone(140,t+.08,.18,"sawtooth",.12); }
+  function sfxTick(){ resume(); tone(1046.5,ctx.currentTime,.06,"triangle",.12); }
+
+  const BASS=[55,55,0,82.41,55,0,65.41,0, 49,49,0,73.42,49,0,61.74,0];
+  const CHORD=[[220,261.63,329.63],[196,246.94,293.66]];
+  function schedule(){
+    const ahead=.35, spb=.1428;
+    while(nextTime < ctx.currentTime+ahead){
+      const s=step%16, bar=Math.floor(step/16)%2;
+      if(s%4===0){
+        const o=ctx.createOscillator(), g=ctx.createGain();
+        o.type="sine";
+        o.frequency.setValueAtTime(150,nextTime);
+        o.frequency.exponentialRampToValueAtTime(45,nextTime+.11);
+        g.gain.setValueAtTime(.5,nextTime);
+        g.gain.exponentialRampToValueAtTime(.001,nextTime+.18);
+        o.connect(g); g.connect(bgmGain); o.start(nextTime); o.stop(nextTime+.22);
+      }
+      if(s%2===1) noise(nextTime,.035, s%4===3?.09:.05, 7000, bgmGain);
+      if(s===4||s===12) noise(nextTime,.12,.22,1400,bgmGain);
+      if(BASS[s]>0) tone(BASS[s],nextTime,.16,"sawtooth",.14,bgmGain);
+      if(s===2||s===10) CHORD[bar].forEach(f=>tone(f,nextTime,.22,"triangle",.045,bgmGain));
+      nextTime+=spb; step++;
+    }
+  }
+  function setBgm(on){
+    resume(); bgmOn=on;
+    if(on){
+      step=0; nextTime=ctx.currentTime+.08;
+      rampBgm(bgmVol,.6);
+      if(!timer) timer=setInterval(schedule,60);
+    }else{
+      rampBgm(0,.35);
+      clearInterval(timer); timer=null;
+    }
+  }
+  function rampBgm(v,dur){
+    if(!ctx) return;
+    const t=ctx.currentTime;
+    bgmGain.gain.cancelScheduledValues(t);
+    bgmGain.gain.setValueAtTime(bgmGain.gain.value,t);
+    bgmGain.gain.linearRampToValueAtTime(v,t+dur);
+  }
+  function setBgmVolume(v){ bgmVol=v; if(ctx && bgmOn) rampBgm(v,.08); }
+  function setSfxVolume(v){ sfxVol=v; if(ctx) sfxGain.gain.value=v; }
+  function duckUp(){ if(bgmOn){ rampBgm(bgmVol*.45,.05); setTimeout(()=>rampBgm(bgmVol,.8), 60); } }
+  return {sfxRecord,sfxLevelUp,sfxBuy,sfxClick,sfxDeny,sfxTick,setBgm,setBgmVolume,setSfxVolume,duckUp,resume};
+})();
+
+/* --- ボイス(Web Speech Synthesis) --- */
+const Voice = (()=>{
+  const synth = window.speechSynthesis;
+  let enabled = true, vol = .9, rate = 1.05, pitch = 1.25, chosen = null;
+  let voices = [];
+
+  // 女性らしい音声を優先して先頭に寄せる(端末に入っている音声に依存)
+  const FEM = /female|woman|women|女性|kyoko|nanami|haruka|ayumi|sayaka|mizuki|o-?ren|otoko(?!)/i;
+  function loadVoices(){
+    if(!synth) return [];
+    let all = synth.getVoices();
+    let ja = all.filter(v=>/ja|JP/i.test(v.lang));
+    if(!ja.length) ja = all;
+    ja = ja.slice().sort((a,b)=>(FEM.test(b.name)?1:0)-(FEM.test(a.name)?1:0));
+    voices = ja;
+    if(!chosen && voices.length && FEM.test(voices[0].name)) chosen = voices[0];
+    return voices;
+  }
+  function speak(text, opts){
+    if(!enabled || !synth || !text) return;
+    if(opts && opts.interrupt) synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ja-JP";
+    u.volume = vol; u.rate = (opts&&opts.rate) || rate; u.pitch = (opts&&opts.pitch) || pitch;
+    if(chosen) u.voice = chosen;
+    synth.speak(u);
+  }
+  return {
+    loadVoices, speak,
+    get list(){ return voices; },
+    set enabled(v){ enabled = v; if(!v && synth) synth.cancel(); },
+    get enabled(){ return enabled; },
+    set volume(v){ vol = v; },
+    set rate(v){ rate = v; },
+    set pitch(v){ pitch = v; },
+    setVoice(v){ chosen = v; },
+    get supported(){ return !!synth; },
+  };
+})();
+
+/* --- セリフ集 --- */
+const LINES = {
+  coach:{ /* 熱血お姉さんコーチ */
+    record:["ナイスセット!その調子よ!","効いてる効いてる!いい追い込み!","よし、フォームばっちり!","もう一段階、上いこう!"],
+    heavy:["重量上がってきたじゃない!やるわね!","その重さを扱えるの、かっこいいよ!"],
+    levelUp:l=>`レベル${l}!体つき、変わってきたよ!`,
+    buy:["似合ってる!いい買い物したね。","装備が決まると気合入るよね!"],
+    test:["最後まで一緒に追い込むから、ついてきて!"],
+  },
+  cool:{ /* クールな女性トレーナー */
+    record:["記録しました。","ログを保存しました。","トレーニング記録を追加しました。"],
+    heavy:["高強度のセットです。回復を意識してください。","前回より高い負荷になっています。"],
+    levelUp:l=>`レベル${l}に到達しました。`,
+    buy:["装備を変更しました。"],
+    test:["音声ガイドのテストです。正常に動作しています。"],
+  },
+  cheer:{ /* 元気な応援ちゃん */
+    record:["やったー!すごいすごい!","ナイスファイト!かっこいい!","今日もえらい!続けててえらい!","その調子だよー!"],
+    heavy:["わあ、その重さ持てるんだ!すごい!","めちゃくちゃ強くなってるよ!"],
+    levelUp:l=>`レベル${l}おめでとう!一緒に強くなろうね!`,
+    buy:["わあ、すごく似合ってる!","かわいい!自慢しちゃお!"],
+    test:["こんにちは!今日も一緒にトレーニングしよう!"],
+  },
+  drill:{ /* スパルタ女教官 */
+    record:["まだいけるでしょう!次!","その程度?もっと上げなさい!","記録したわ。でも満足するには早い。","止まらないで、動き続けなさい!"],
+    heavy:["ようやく本気になったのね。","その程度の重量で音を上げないで。"],
+    levelUp:l=>`レベル${l}。ここからが本番よ。`,
+    buy:["形から入るのも悪くないわ。結果を出しなさい。"],
+    test:["あなたを鍛え上げてあげる。覚悟なさい。"],
+  },
+};
+let voiceStyle = "coach";
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function say(kind, arg, opts){
+  const set = LINES[voiceStyle];
+  const v = set[kind];
+  if(!v) return;
+  Voice.speak(typeof v === "function" ? v(arg) : pick(v), opts);
+}
+
+/* ==========================================================
+   4. Three.js シーン
+   ========================================================== */
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(34, 1, .1, 50);
+camera.position.set(0, 1.38, 3.4);
+camera.lookAt(0, .97, 0);
+
+scene.add(new THREE.HemisphereLight(0xe6eefb, 0x3a2c26, 1.05));
+const keyLight = new THREE.DirectionalLight(0xfff4e4, 1.00); keyLight.position.set(2.0,3.0,3.0); scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0xd8e4f6, .52); fillLight.position.set(-2.6,1.4,1.8); scene.add(fillLight);
+const rimLight = new THREE.DirectionalLight(0xffd0dc, .62); rimLight.position.set(-1.2,2.2,-3); scene.add(rimLight);
+
+const disc = new THREE.Mesh(new THREE.CircleGeometry(.8,64),
+  new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:.32}));
+disc.rotation.x = -Math.PI/2; disc.position.y = .002; scene.add(disc);
+
+const avatar = new THREE.Group(); scene.add(avatar);
+// ポーズ(種目モーション)の基準。ドラッグ回転する avatar の内側に置く
+const poseRoot = new THREE.Group(); avatar.add(poseRoot);
+
+/* ---------- 補助 ---------- */
+// C1連続のスムーズステップ。max(0,x) のような折れ目を作らない
+const smoothstep=(e0,e1,x)=>{ const t=Math.min(1,Math.max(0,(x-e0)/(e1-e0))); return t*t*(3-2*t); };
+
+/* ---------- Catmull-Rom による断面補間 ---------- */
+function cr(p0,p1,p2,p3,t){
+  const t2=t*t, t3=t2*t;
+  return .5*((2*p1) + (-p0+p2)*t + (2*p0-5*p1+4*p2-p3)*t2 + (-p0+3*p1-3*p2+p3)*t3);
+}
+function smoothStations(ctrl, sub){
+  const out=[], n=ctrl.length;
+  const at = i => ctrl[Math.max(0, Math.min(n-1, i))];
+  for(let i=0;i<n-1;i++){
+    const p0=at(i-1), p1=at(i), p2=at(i+1), p3=at(i+2);
+    for(let k=0;k<sub;k++){
+      const t = k/sub;
+      out.push({
+        x: cr(p0.x,p1.x,p2.x,p3.x,t),
+        y: cr(p0.y,p1.y,p2.y,p3.y,t),
+        z: cr(p0.z||0,p1.z||0,p2.z||0,p3.z||0,t),
+        rx: Math.max(.004, cr(p0.rx,p1.rx,p2.rx,p3.rx,t)),
+        rz: Math.max(.004, cr(p0.rz??p0.rx, p1.rz??p1.rx, p2.rz??p2.rx, p3.rz??p3.rx, t)),
+        zone: (t<.5 ? p1.zone : p2.zone) || p1.zone,
+      });
+    }
+  }
+  const last = ctrl[n-1];
+  out.push({x:last.x, y:last.y, z:last.z||0, rx:last.rx, rz:last.rz??last.rx, zone:last.zone});
+  return out;
+}
+
+/* ---------- メッシュ生成 ---------- */
+const positions=[], normals=[], indices=[], zones=[], limbs=[];
+let curZone = "torso", curLimb = 0;   // 0:胴体 1:左腕 2:右腕 3:左脚 4:右脚
+
+function addTube(ctrl, radial, sub, capStart, capEnd){
+  const stations = smoothStations(ctrl, sub);
+  // 下向きに伸びるチューブ(腕・脚)はリングの巻き順が逆になるため、面の向きを反転させる。
+  // これを揃えておかないと法線が内向きになり、陰影と肥大方向が破綻する。
+  const flip = stations[stations.length-1].y < stations[0].y;
+  const ringStart = [];
+  stations.forEach(st=>{
+    ringStart.push(positions.length/3);
+    for(let j=0;j<radial;j++){
+      const th=(j/radial)*Math.PI*2, c=Math.cos(th), sn=Math.sin(th);
+      positions.push(st.x + c*st.rx, st.y, st.z + sn*st.rz);
+      const nx = c/st.rx, nz = sn/st.rz, l = Math.hypot(nx,nz)||1;
+      normals.push(nx/l, 0, nz/l);
+      zones.push(st.zone || curZone); limbs.push(curLimb);
+    }
+  });
+  for(let i=0;i<stations.length-1;i++){
+    const a=ringStart[i], b=ringStart[i+1];
+    for(let j=0;j<radial;j++){
+      const j2=(j+1)%radial;
+      if(flip){
+        indices.push(a+j,b+j2,b+j);
+        indices.push(a+j,a+j2,b+j2);
+      }else{
+        indices.push(a+j,b+j,b+j2);
+        indices.push(a+j,b+j2,a+j2);
+      }
+    }
+  }
+  if(capStart){
+    const st=stations[0], c=positions.length/3;
+    positions.push(st.x,st.y,st.z);
+    normals.push(...axisDir(stations[1],st)); zones.push(st.zone||curZone); limbs.push(curLimb);
+    for(let j=0;j<radial;j++){
+      const u=ringStart[0]+(j+1)%radial, v=ringStart[0]+j;
+      if(flip) indices.push(c, v, u); else indices.push(c, u, v);
+    }
+  }
+  if(capEnd){
+    const st=stations[stations.length-1], c=positions.length/3;
+    positions.push(st.x,st.y,st.z);
+    normals.push(...axisDir(stations[stations.length-2],st)); zones.push(st.zone||curZone); limbs.push(curLimb);
+    const r=ringStart[stations.length-1];
+    for(let j=0;j<radial;j++){
+      const u=r+j, v=r+(j+1)%radial;
+      if(flip) indices.push(c, v, u); else indices.push(c, u, v);
+    }
+  }
+}
+function axisDir(from,to){
+  const dx=to.x-from.x, dy=to.y-from.y, dz=to.z-from.z;
+  const l=Math.hypot(dx,dy,dz)||1; return [dx/l,dy/l,dz/l];
+}
+
+/* v4: SUB=3 / 胴体32分割・四肢22分割 → 5,026頂点
+   v5: SUB=5 / 胴体48分割・四肢30分割 → 約11,700頂点
+   v6: SUB=6 / 胴体56分割・四肢36分割 → 約17,300頂点(v4の約3.4倍) */
+const SUB = 6;
+const RAD_TORSO = 60;
+const RAD_LIMB  = 36;
+
+/* 首から頭頂までの断面。顔パーツと髪の生え際もこの輪郭から逆算するので、
+   ここを1箇所書き換えれば顔まわり全部が追従する。 */
+const HEAD_CTRL = [
+  {x:0,y:1.446,z:-.002,rx:.060,rz:.056, zone:"neck"},
+  {x:0,y:1.472,z:0,    rx:.050,rz:.050, zone:"neck"},
+  {x:0,y:1.490,z:.008, rx:.068,rz:.072, zone:"head"},  // 顎下
+  {x:0,y:1.508,z:.010, rx:.081,rz:.088, zone:"head"},
+  {x:0,y:1.525,z:.010, rx:.092,rz:.102, zone:"head"},  // 顎
+  {x:0,y:1.548,z:.008, rx:.104,rz:.117, zone:"head"},
+  {x:0,y:1.572,z:.004, rx:.115,rz:.131, zone:"head"},  // 頬
+  {x:0,y:1.600,z:.002, rx:.124,rz:.138, zone:"head"},
+  {x:0,y:1.627,z:0,    rx:.130,rz:.142, zone:"head"},  // 頭部最大
+  {x:0,y:1.655,z:-.002,rx:.130,rz:.1415,zone:"head"},
+  {x:0,y:1.683,z:-.004,rx:.128,rz:.139, zone:"head"},
+  {x:0,y:1.706,z:-.007,rx:.119,rz:.129, zone:"head"},
+  {x:0,y:1.727,z:-.010,rx:.103,rz:.114, zone:"head"},
+  {x:0,y:1.743,z:-.011,rx:.078,rz:.086, zone:"head"},
+  {x:0,y:1.756,z:-.012,rx:.036,rz:.040, zone:"head"},
+];
+/* 高さ y における頭の断面(メッシュと同じCatmull-Romで求める)。
+   顔パーツの奥行きも髪シェルの半径も、これを使って「表面のちょっと外/内」に置く。 */
+function headR(y){
+  const C=HEAD_CTRL, n=C.length;
+  const at=i=>C[Math.max(0,Math.min(n-1,i))];
+  let i=0;
+  while(i<n-2 && C[i+1].y<y) i++;
+  const p0=at(i-1),p1=at(i),p2=at(i+1),p3=at(i+2);
+  const t=Math.max(0,Math.min(1,(y-p1.y)/((p2.y-p1.y)||1)));
+  return {
+    rx: cr(p0.rx,p1.rx,p2.rx,p3.rx,t),
+    rz: cr(p0.rz,p1.rz,p2.rz,p3.rz,t),
+    z:  cr(p0.z,p1.z,p2.z,p3.z,t),
+  };
+}
+const headFrontZ = y => { const r=headR(y); return r.z + r.rz; };
+
+/* 胴体 + 首 + 頭(7頭身の女性シルエット。くびれ・広い骨盤・大きめの頭) */
+addTube([
+  {x:0,y:.876,z:.006, rx:.146,rz:.114},   // 骨盤下部
+  {x:0,y:.938,z:.004, rx:.158,rz:.120},   // ヒップ最大幅
+  {x:0,y:1.000,z:.002,rx:.146,rz:.110},
+  {x:0,y:1.058,z:.004,rx:.122,rz:.094},
+  {x:0,y:1.107,z:.006,rx:.104,rz:.086},   // ウエスト最細
+  {x:0,y:1.160,z:.006,rx:.113,rz:.093},
+  {x:0,y:1.212,z:.004,rx:.124,rz:.101},
+  {x:0,y:1.262,z:.002,rx:.132,rz:.106},   // バスト位置(前方への張り出しは造形ブロブで付与)
+  {x:0,y:1.312,z:0,   rx:.136,rz:.104},
+  {x:0,y:1.358,z:-.002,rx:.138,rz:.099},
+  {x:0,y:1.396,z:-.004,rx:.132,rz:.092},  // 肩(男性版より狭い)
+  {x:0,y:1.428,z:-.004,rx:.108,rz:.078},
+  ...HEAD_CTRL,
+], RAD_TORSO, SUB, true, true);
+
+curZone = "arm";
+[1,-1].forEach((s,si)=>{
+  curLimb = si===0 ? 1 : 2;
+  addTube([
+    {x:.098*s,y:1.396,z:0,   rx:.046,rz:.046},   // 肩関節のすぐ内側から開始(継ぎ目を隠す)
+    {x:.132*s,y:1.386,z:0,   rx:.047,rz:.047},
+    {x:.158*s,y:1.344,z:.002,rx:.045,rz:.045},
+    {x:.172*s,y:1.278,z:.005,rx:.040,rz:.040},
+    {x:.180*s,y:1.206,z:.007,rx:.036,rz:.036},
+    {x:.188*s,y:1.136,z:.008,rx:.032,rz:.032},   // 肘
+    {x:.197*s,y:1.060,z:.009,rx:.034,rz:.034},
+    {x:.207*s,y:.980,z:.009, rx:.030,rz:.030},
+    {x:.215*s,y:.912,z:.009, rx:.023,rz:.023, zone:"hand"},  // 手首
+    {x:.221*s,y:.872,z:.013, rx:.026,rz:.034, zone:"hand"},
+    {x:.224*s,y:.834,z:.017, rx:.021,rz:.030, zone:"hand"},
+    {x:.224*s,y:.814,z:.017, rx:.008,rz:.012, zone:"hand"},
+  ], RAD_LIMB, SUB, true, true);
+});
+
+curZone = "leg";
+[1,-1].forEach((s,si)=>{
+  curLimb = si===0 ? 3 : 4;
+  addTube([
+    {x:.066*s,y:1.030,z:0,   rx:.076,rz:.078},   // 骨盤内部から開始
+    {x:.078*s,y:.960,z:0,    rx:.092,rz:.092},   // 大腿上部
+    {x:.086*s,y:.868,z:.003, rx:.090,rz:.088},
+    {x:.090*s,y:.764,z:.005, rx:.081,rz:.080},
+    {x:.093*s,y:.656,z:.002, rx:.068,rz:.069},
+    {x:.095*s,y:.562,z:0,    rx:.055,rz:.058},
+    {x:.097*s,y:.504,z:0,    rx:.050,rz:.054},   // 膝
+    {x:.099*s,y:.428,z:-.004,rx:.055,rz:.060},   // ふくらはぎ
+    {x:.100*s,y:.340,z:-.002,rx:.049,rz:.052},
+    {x:.102*s,y:.232,z:0,    rx:.037,rz:.040},   // 足首
+    {x:.103*s,y:.130,z:0,    rx:.031,rz:.034, zone:"foot"},
+    {x:.103*s,y:.072,z:.012, rx:.032,rz:.045, zone:"foot"},
+    {x:.103*s,y:.032,z:.048, rx:.033,rz:.079, zone:"foot"},
+    {x:.103*s,y:.018,z:.070, rx:.026,rz:.060, zone:"foot"},
+  ], RAD_LIMB, SUB, true, true);
+});
+
+/* ---------- 女性シルエットの造形(ベースに焼き込む) ---------- */
+/* 断面リングだけでは出せない前後非対称の膨らみを、生成直後に一度だけ加算する。
+   焼き込みなので実行時コストはゼロ。法線はこの後に再計算する。 */
+const BASE_SHAPE = [
+  {amp:.038, c:[.056,1.268,.092], s:[.056,.054,.054], dir:[.18,-.14,1]},   // バスト
+  {amp:.030, c:[.064,.928,-.070], s:[.060,.064,.054], dir:[.10,-.20,-1]},  // ヒップ
+  {amp:.013, c:[.106,.846,.006],  s:[.050,.100,.076], dir:[1,0,0]},        // 大腿外側のやわらかさ
+];
+{
+  const n = positions.length/3, d=new THREE.Vector3();
+  for(let i=0;i<n;i++){
+    const px=positions[i*3], py=positions[i*3+1], pz=positions[i*3+2];
+    const nx=normals[i*3], ny=normals[i*3+1], nz=normals[i*3+2];
+    let disp=0;
+    BASE_SHAPE.forEach(b=>{
+      [1,-1].forEach(mir=>{
+        const dx=(px-b.c[0]*mir)/b.s[0], dy=(py-b.c[1])/b.s[1], dz=(pz-b.c[2])/b.s[2];
+        let g=Math.exp(-(dx*dx+dy*dy+dz*dz));
+        if(b.dir){
+          d.set(b.dir[0]*mir,b.dir[1],b.dir[2]).normalize();
+          g *= smoothstep(-.15,.95, nx*d.x+ny*d.y+nz*d.z);
+        }
+        disp += b.amp*g;
+      });
+    });
+    positions[i*3]+=nx*disp; positions[i*3+1]+=ny*disp; positions[i*3+2]+=nz*disp;
+  }
+}
+
+const geometry = new THREE.BufferGeometry();
+geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(positions),3));
+geometry.setIndex(indices);
+geometry.computeVertexNormals();
+
+const vCount = positions.length/3;
+const basePos = new Float32Array(positions);
+// 造形後の面から求めた法線を肥大方向に使う(解析法線ではバストの向きがずれるため)
+const baseNrm = new Float32Array(geometry.attributes.normal.array);
+geometry.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array(vCount*3),3));
+
+/* 頭部へ向けて「全体の厚み」を抜くためのフェード(段差防止) */
+const massFade = new Float32Array(vCount);
+for(let i=0;i<vCount;i++) massFade[i] = 1 - smoothstep(1.392, 1.500, basePos[i*3+1]);
+
+/* ---------- 隣接頂点リスト(重みマップの平滑化に使う) ---------- */
+const adjStart = new Int32Array(vCount+1);
+let adjList;
+{
+  const cnt = new Int32Array(vCount), pairs = [], seen = new Set();
+  const push=(u,v)=>{
+    if(u===v) return;
+    const k = u<v ? u*vCount+v : v*vCount+u;
+    if(seen.has(k)) return;
+    seen.add(k); pairs.push(u,v); cnt[u]++; cnt[v]++;
+  };
+  for(let t=0;t<indices.length;t+=3){
+    const a=indices[t], b=indices[t+1], c=indices[t+2];
+    push(a,b); push(b,c); push(c,a);
+  }
+  let acc=0;
+  for(let i=0;i<vCount;i++){ adjStart[i]=acc; acc+=cnt[i]; }
+  adjStart[vCount]=acc;
+  adjList = new Int32Array(acc);
+  const fill = Int32Array.from(adjStart.subarray(0,vCount));
+  for(let i=0;i<pairs.length;i+=2){
+    const u=pairs[i], v=pairs[i+1];
+    adjList[fill[u]++]=v; adjList[fill[v]++]=u;
+  }
+}
+
+/* ---------- 部位ごとの頂点重み ---------- */
+/* v4はσが狭いまま振幅だけ大きく、方向マスクも max(0,n·d) で折れていたため、
+   一点が突き出してトゲ・ツノになっていた。v5では
+     ・分布を全体的に広げる
+     ・方向マスクを smoothstep にして折れ目をなくす
+     ・複数ブロブの合成を max ではなくスムーズ和 1-Π(1-g) にする
+     ・出来上がった重みマップをメッシュ上でラプラシアン平滑化する
+     ・成長するほど分布そのものを広げる(narrow/wide の2枚を補間)
+   の5点で、なだらかなカーブになるようにしている。 */
+const REGION = {
+  chestUpper:{amp:.032, blobs:[{c:[.058,1.330,.092], s:[.066,.056,.066], dir:[0,.35,1]}]},
+  chestLower:{amp:.038, blobs:[{c:[.070,1.254,.118], s:[.074,.066,.074], dir:[0,-.05,1]}]},
+  deltFront: {amp:.028, blobs:[{c:[.132,1.382,.050], s:[.056,.060,.054], dir:[.45,0,1]}]},
+  deltSide:  {amp:.036, blobs:[{c:[.142,1.370,0],    s:[.060,.068,.060], dir:[1,.25,0]}]},
+  deltRear:  {amp:.028, blobs:[{c:[.132,1.372,-.048],s:[.056,.060,.054], dir:[.45,0,-1]}]},
+  biceps:    {amp:.034, blobs:[{c:[.174,1.240,.036], s:[.052,.086,.054], dir:[0,0,1]}]},
+  triceps:   {amp:.032, blobs:[{c:[.174,1.232,-.034],s:[.052,.092,.054], dir:[0,0,-1]}]},
+  forearm:   {amp:.028, blobs:[{c:[.200,1.020,.009], s:[.062,.100,.062]}]},
+  lats:      {amp:.044, blobs:[{c:[.108,1.248,-.056],s:[.066,.100,.070], dir:[.65,0,-1]}]},
+  traps:     {amp:.032, blobs:[{c:[.070,1.436,-.026],s:[.078,.062,.070], dir:[0,.6,-.55]}]},
+  erectors:  {amp:.026, blobs:[{c:[.030,1.100,-.086],s:[.046,.142,.058], dir:[0,0,-1]}]},
+  abs:       {amp:.026, blobs:[{c:[.028,1.115,.098], s:[.056,.146,.056], dir:[0,0,1]}]},
+  obliques:  {amp:.026, blobs:[{c:[.098,1.078,.018], s:[.044,.084,.076], dir:[1,0,.2]}]},
+  quads:     {amp:.042, blobs:[{c:[.088,.750,.072],  s:[.072,.158,.072], dir:[0,0,1]}]},
+  hams:      {amp:.038, blobs:[{c:[.090,.724,-.064], s:[.068,.144,.072], dir:[0,0,-1]},
+                               {c:[.068,.928,-.086], s:[.066,.070,.064], dir:[0,.2,-1]}]},
+  calves:    {amp:.030, blobs:[{c:[.096,.386,-.046], s:[.056,.102,.058], dir:[.25,0,-1]}]},
+};
+
+const WIDE_SCALE   = 1.45;  // 成長しきったときの分布の拡幅率
+const SMOOTH_ITER  = 6;     // 重みマップの平滑化回数
+const SMOOTH_LAMBDA= .55;
+
+function blobField(scale){
+  const out = PART_IDS.map(()=>new Float32Array(vCount));
+  const d = new THREE.Vector3();
+  for(let i=0;i<vCount;i++){
+    // 首から上へ向けて重みをなめらかに0へ落とす(頭は太らせない/境目に段差を作らない)
+    const hf = 1 - smoothstep(1.438, 1.505, basePos[i*3+1]);
+    if(hf<=0) continue;
+    const px=basePos[i*3], py=basePos[i*3+1], pz=basePos[i*3+2];
+    const nx=baseNrm[i*3], ny=baseNrm[i*3+1], nz=baseNrm[i*3+2];
+    for(let pi=0;pi<PART_IDS.length;pi++){
+      const blobs = REGION[PART_IDS[pi]].blobs;
+      let inv = 1;
+      for(let bi=0;bi<blobs.length;bi++){
+        const b=blobs[bi];
+        for(let m=0;m<2;m++){
+          const mir = m? -1 : 1;
+          if(b.c[0]===0 && mir===-1) continue;
+          const sx=b.s[0]*scale, sy=b.s[1]*scale, sz=b.s[2]*scale;
+          const dx=(px-b.c[0]*mir)/sx, dy=(py-b.c[1])/sy, dz=(pz-b.c[2])/sz;
+          let g=Math.exp(-(dx*dx+dy*dy+dz*dz));
+          if(g<1e-4) continue;
+          if(b.dir){
+            d.set(b.dir[0]*mir,b.dir[1],b.dir[2]).normalize();
+            // 折れ目のない方向マスク(v4の max(0,n·d) は微分不連続でスジが出ていた)
+            g *= smoothstep(-.30,.90, nx*d.x+ny*d.y+nz*d.z);
+          }
+          inv *= (1-Math.min(1,g));               // スムーズ和
+        }
+      }
+      out[pi][i] = (1-inv)*hf;
+    }
+  }
+  return out;
+}
+
+/* メッシュ上でのラプラシアン平滑化。高周波成分を落として尖りを消す */
+function relaxField(field){
+  let cur=field, next=new Float32Array(vCount);
+  for(let it=0; it<SMOOTH_ITER; it++){
+    for(let i=0;i<vCount;i++){
+      const a=adjStart[i], b=adjStart[i+1];
+      if(b<=a){ next[i]=cur[i]; continue; }
+      let sum=0;
+      for(let k=a;k<b;k++) sum+=cur[adjList[k]];
+      next[i] = cur[i]*(1-SMOOTH_LAMBDA) + (sum/(b-a))*SMOOTH_LAMBDA;
+    }
+    const t=cur; cur=next; next=t;
+  }
+  return cur;
+}
+
+/* [部位index, 狭い重み, 広い重み] を頂点ごとにスパースに保持 */
+const vertexWeights = new Array(vCount);
+{
+  const narrow = blobField(1).map(relaxField);
+  const wide   = blobField(WIDE_SCALE).map(relaxField);
+  for(let i=0;i<vCount;i++){
+    const list=[];
+    for(let pi=0;pi<PART_IDS.length;pi++){
+      const a=narrow[pi][i], b=wide[pi][i];
+      if(a>.012 || b>.012) list.push(pi,a,b);
+    }
+    vertexWeights[i]=list;
+  }
+  console.log(`[avatar] ${vCount} vertices / ${indices.length/3} triangles`);
+}
+
+/* ---------- 服の被覆判定 ---------- */
+const COVER = {
+  top_none:   ()=>false,
+  top_bra:    (z,x,y)=> (z==="torso" && y>=1.205 && y<=1.368),
+  top_crop:   (z,x,y)=> (z==="torso" && y>=1.178 && y<=1.398),
+  top_tank:   (z,x,y)=> (z==="torso" && y>=1.005 && y<=1.402),
+  top_tee:    (z,x,y)=> (z==="torso" && y>=.985 && y<=1.424) || (z==="arm" && y>=1.235),
+  top_hoodie: (z,x,y)=> (z==="torso" && y>=.962 && y<=1.444) || (z==="arm" && y>=.925) || z==="neck",
+  btm_shorts: (z,x,y)=> (z==="torso" && y<=1.032) || (z==="leg" && y>=.700),
+  btm_bike:   (z,x,y)=> (z==="torso" && y<=1.032) || (z==="leg" && y>=.630),
+  btm_leggings:(z,x,y)=>(z==="torso" && y<=1.032) || (z==="leg" && y>=.190),
+  btm_joggers:(z,x,y)=> (z==="torso" && y<=1.032) || (z==="leg" && y>=.140),
+};
+
+/* シューズ/ソックス。0=なし 1=ソックス色 2=シューズ色。ボトムスより優先して塗る */
+const SHOES = {
+  shoes_none:    ()=>0,
+  shoes_socks:   (z,x,y)=> z==="foot" ? 1 : (z==="leg" && y<=.300 ? 1 : 0),
+  shoes_sneaker: (z,x,y)=> z==="foot" ? 2 : (z==="leg" && y<=.300 ? (y<=.196 ? 2 : 1) : 0),
+  shoes_high:    (z,x,y)=> z==="foot" ? 2 : (z==="leg" && y<=.340 ? (y<=.268 ? 2 : 1) : 0),
+};
+const SOCK_COLOR = "#f7f3ec";
+
+/* ---------- マテリアル ---------- */
+const skinMat = new THREE.MeshStandardMaterial({
+  color:0xffffff, vertexColors:true, roughness:.58, metalness:0,
+  side:THREE.FrontSide, flatShading:false,
+});
+const wireMat = new THREE.MeshBasicMaterial({wireframe:true, vertexColors:true});
+const bodyMesh = new THREE.Mesh(geometry, skinMat);
+const wireMesh = new THREE.Mesh(geometry, wireMat);
+wireMesh.visible = false;
+poseRoot.add(bodyMesh, wireMesh);
+
+const COL_WIRE=new THREE.Color("#5a7ba6"), COL_HOT=new THREE.Color("#f97632"), COL_FLASH=new THREE.Color("#ffd9a8");
+
+/* ---------- 顔・アイテム ---------- */
+/* アクセサリはボーンごとのグループに分けて、ポーズに追従させる */
+const gHead = new THREE.Group(), gHandL = new THREE.Group(),
+      gHandR = new THREE.Group(), gWaist = new THREE.Group();
+[gHead,gHandL,gHandR,gWaist].forEach(g=>{ g.matrixAutoUpdate=false; poseRoot.add(g); });
+const accGroup = { // setMode から visible をまとめて操作するためのファサード
+  set visible(v){ gHead.visible=gHandL.visible=gHandR.visible=gWaist.visible=v; },
+  get visible(){ return gHead.visible; },
+};
+const HEAD = {y:1.627, rx:.130, rz:.142};
+/* 顔パーツは「顔の表面から何mm手前/奥」で定義する。
+   頭の輪郭を変えても埋まったり浮いたりしない。 */
+const EYEY  = HEAD.y-.026, EYEZ  = headFrontZ(HEAD.y-.026)-.016;
+const NOSEY = HEAD.y-.075, NOSEZ = headFrontZ(HEAD.y-.075)-.002;
+const MTHY  = HEAD.y-.107, MTHZ  = headFrontZ(HEAD.y-.107)-.005;
+const HAIRLINE = HEAD.y+.078;            // 前髪の生え際
+const SEG = [40,30];
+
+function mat(color,opts){
+  return new THREE.MeshStandardMaterial(Object.assign(
+    {color:new THREE.Color(color), roughness:.62, metalness:.03}, opts||{}));
+}
+function sph(rx,ry,rz,x,y,z,m){
+  const g=new THREE.Mesh(new THREE.SphereGeometry(1,SEG[0],SEG[1]), m);
+  g.position.set(x,y,z); g.scale.set(rx,ry,rz); return g;
+}
+// 毛束用の低ポリ球(数を並べるのでポリゴンを抑える)
+const SEG_L=[26,18];
+function sphL(rx,ry,rz,x,y,z,m){
+  const g=new THREE.Mesh(new THREE.SphereGeometry(1,SEG_L[0],SEG_L[1]), m);
+  g.position.set(x,y,z); g.scale.set(rx,ry,rz); return g;
+}
+function cyl(rt,rb,h,x,y,z,m,rot,seg){
+  const g=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||28,1,true), m);
+  g.position.set(x,y,z); if(rot) g.rotation.set(rot[0]||0,rot[1]||0,rot[2]||0); return g;
+}
+// 角の丸いブロック(ポリゴン感を消すため箱の代わりに使う)
+function pill(w,h,d,x,y,z,m,rot){
+  const g=new THREE.Mesh(new THREE.SphereGeometry(1,24,16), m);
+  g.position.set(x,y,z); g.scale.set(w/2,h/2,d/2);
+  if(rot) g.rotation.set(rot[0]||0,rot[1]||0,rot[2]||0);
+  return g;
+}
+function mirror(fn){ const g=new THREE.Group(); [1,-1].forEach(s=>g.add(fn(s))); return g; }
+
+function shade(hex, k){
+  const c = new THREE.Color(hex);
+  c.r=Math.min(1,c.r*k); c.g=Math.min(1,c.g*k); c.b=Math.min(1,c.b*k);
+  return "#"+c.getHexString();
+}
+
+/* ---------- 目(まつ毛・虹彩・ハイライトつき) ---------- */
+function buildEyes(o){
+  const white = mat("#fdfbf7",{roughness:.20});
+  const irisM = mat(state.eyeColor||"#a3673a",{roughness:.14});
+  const rimM  = mat(shade(state.eyeColor||"#a3673a",.55),{roughness:.20});
+  const pupM  = mat("#191320",{roughness:.06});
+  const hiM   = mat("#ffffff",{roughness:.02, emissive:new THREE.Color("#ffffff"), emissiveIntensity:.45});
+  const lashM = mat(shade(state.hairColor,.50),{roughness:.95});
+  const browM = mat(shade(state.hairColor,.82),{roughness:1});
+  const W=o.w, H=o.h, X=.062;
+  return mirror(s=>{
+    const g=new THREE.Group(), tl=(o.tilt||0)*s;
+    const e=sph(W,H,.018, X*s, EYEY, EYEZ, white); e.rotation.z=tl; g.add(e);
+    // 虹彩(外周を濃くして立体感を出す)
+    const rim=sph(W*.66,H*.80,.016, X*s, EYEY+(o.iy||0), EYEZ+.008, rimM); rim.rotation.z=tl; g.add(rim);
+    const ir=sph(W*.55,H*.68,.015, X*s, EYEY+(o.iy||0)-H*.06, EYEZ+.013, irisM); ir.rotation.z=tl; g.add(ir);
+    g.add(sph(W*.25,H*.32,.013, X*s, EYEY+(o.iy||0), EYEZ+.018, pupM));
+    // ハイライト(大小2つ)
+    g.add(sph(W*.24,H*.26,.011, (X-.011)*s, EYEY+H*.34, EYEZ+.021, hiM));
+    g.add(sph(W*.12,H*.13,.009, (X+.013)*s, EYEY-H*.32, EYEZ+.020, hiM));
+    if(o.sparkle){
+      g.add(sph(W*.11,H*.11,.008, (X+.020)*s, EYEY+H*.20, EYEZ+.020, hiM));
+      g.add(sph(W*.08,H*.08,.008, (X-.020)*s, EYEY-H*.10, EYEZ+.020, hiM));
+    }
+    // 上まつ毛
+    g.add(pill(W*2.30,.016,.026, X*s, EYEY+H*.97, EYEZ+.004, lashM, [0,0,tl]));
+    // 目尻
+    const t=sph(.016,.010,.011, (X+W*.95)*s, EYEY+H*.66, EYEZ-.002, lashM);
+    t.rotation.z=tl-.45*s; g.add(t);
+    if(o.lower) g.add(pill(W*1.5,.009,.018, X*s, EYEY-H*1.00, EYEZ+.002, lashM, [0,0,tl*.5]));
+    // 眉
+    g.add(pill(.050,.0095,.016, X*s, EYEY+H+.015+(o.browY||0), EYEZ-.010, browM, [0,0,(o.brow||0)*s]));
+    return g;
+  });
+}
+
+/* ---------- 髪パーツの補助 ---------- */
+/* 根元→毛先のグラデーション用マテリアル配列 */
+function hairGrad(n, dbl){
+  const a=new THREE.Color(state.hairColor), b=new THREE.Color(state.hairTip||state.hairColor);
+  const out=[];
+  for(let i=0;i<n;i++){
+    const c=a.clone().lerp(b, n>1 ? Math.pow(i/(n-1), 1.9) : 0);
+    out.push(mat("#"+c.getHexString(), dbl ? {roughness:.92, side:THREE.DoubleSide} : {roughness:.92}));
+  }
+  return out;
+}
+
+/* 頭を包む髪のシェル。球をかぶせるのではなく、頭の断面そのものを外側へ膨らませ、
+   生え際のラインより上だけをメッシュにする。頭の輪郭から作るので後頭部がはみ出ない。 */
+function hairShell(m, o){
+  o = o||{};
+  const th  = o.thick ?? .015;
+  const yF  = o.front ?? HAIRLINE;
+  const yB  = o.back!=null ? HEAD.y+o.back : HEAD.y-.098;
+  const yTop= 1.757;
+  const A = 60, V = 20;
+  const pos=[], idx=[];
+  for(let j=0;j<=A;j++){
+    const a = j/A*Math.PI*2;                 // 0 = 顔の正面(z+)
+    const t = (1+Math.cos(a))/2;             // 1=前 0=後
+    const w = smoothstep(.46, .99, t);       // 正面付近だけ生え際を上げる
+    const yl = yB + (yF-yB)*w;
+    for(let k=0;k<=V;k++){
+      const u = k/V;
+      const y = yTop - (yTop-yl)*u;
+      const r = headR(y);
+      pos.push(Math.sin(a)*(r.rx+th), y, r.z+Math.cos(a)*(r.rz+th));
+    }
+  }
+  for(let j=0;j<A;j++) for(let k=0;k<V;k++){
+    const p=j*(V+1)+k, q=(j+1)*(V+1)+k;
+    idx.push(p,q,q+1, p,q+1,p+1);
+  }
+  // 頭頂をふさぐ
+  const capC = pos.length/3;
+  pos.push(0, yTop+.012, headR(yTop).z);
+  for(let j=0;j<A;j++) idx.push(capC, (j+1)*(V+1), j*(V+1));
+  const g=new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return new THREE.Mesh(g, m);
+}
+
+/* 前髪。生え際のすぐ下に丸い房を並べる */
+function bangs(m, sideSweep){
+  const g=new THREE.Group();
+  for(let i=-6;i<=6;i++){
+    const t=i/6;
+    const w=.024-Math.abs(t)*.003, h=.050-t*t*.010;
+    const by=HAIRLINE+.004-t*t*.010;
+    const b=sphL(w,h,.036, t*.080 + (sideSweep||0)*.014, by, headFrontZ(by)-.030-t*t*.040, m);
+    b.rotation.z=-t*.24;
+    g.add(b);
+  }
+  return g;
+}
+
+/* 耳の横に垂らす毛束 */
+function sideLock(ms, s, len, r0){
+  const g=new THREE.Group(), n=11;
+  for(let i=0;i<n;i++){
+    const t=i/(n-1);
+    const m = Array.isArray(ms) ? ms[Math.round(t*(ms.length-1))] : ms;
+    g.add(sphL((r0||.030)-t*.012, .034, .038-t*.014, .128*s, HEAD.y+.030-t*len, .016-t*.016, m));
+  }
+  return g;
+}
+
+/* 制御点をCatmull-Romで細分してから球を並べるので、数珠つなぎに見えない */
+function strand(ms, pts, r0, r1, sub){
+  const g=new THREE.Group(), n=pts.length, S=sub||6;
+  const at=i=>pts[Math.max(0,Math.min(n-1,i))];
+  const out=[];
+  for(let i=0;i<n-1;i++){
+    const p0=at(i-1),p1=at(i),p2=at(i+1),p3=at(i+2);
+    for(let k=0;k<S;k++){
+      const t=k/S;
+      out.push([cr(p0[0],p1[0],p2[0],p3[0],t),
+                cr(p0[1],p1[1],p2[1],p3[1],t),
+                cr(p0[2],p1[2],p2[2],p3[2],t)]);
+    }
+  }
+  out.push(pts[n-1]);
+  const N=out.length;
+  out.forEach((p,i)=>{
+    const t=N>1?i/(N-1):0;
+    const r=r0+(r1-r0)*t;
+    const m=Array.isArray(ms)?ms[Math.round(t*(ms.length-1))]:ms;
+    g.add(sphL(r, r*1.10, r, p[0], p[1], p[2], m));
+  });
+  return g;
+}
+
+/* 後頭部〜サイドを回る毛先のリング(前面は開ける)。ボブやレイヤーの裾に使う */
+function hairRing(m, y, rx, rz, r, n){
+  const g=new THREE.Group(), N=n||28;
+  for(let j=0;j<N;j++){
+    const a = Math.PI*.30 + Math.PI*1.40*(j/(N-1));
+    g.add(sphL(r, r*1.15, r, Math.sin(a)*rx, y, -.004+Math.cos(a)*rz, m));
+  }
+  return g;
+}
+
+/* 後ろ髪の量塊 */
+function backMass(ms, drop, w){
+  const g=new THREE.Group(), a=Array.isArray(ms)?ms:[ms,ms,ms];
+  const pick=t=>a[Math.round(t*(a.length-1))];
+  g.add(sph(.144*(w||1),.150,.106, 0, HEAD.y-.070, -.054, pick(0)));
+  g.add(sph(.132*(w||1),.140,.092, 0, HEAD.y-.070-drop*.45, -.046, pick(.5)));
+  g.add(sph(.112*(w||1),.120,.078, 0, HEAD.y-.070-drop*.90, -.038, pick(1)));
+  return g;
+}
+
+const BUILD = {
+  /* ===== 髪型 ===== */
+  hair_twin: ()=>{
+    const G=hairGrad(6), S=hairGrad(1,true)[0], g=new THREE.Group();
+    g.add(hairShell(S)); g.add(bangs(G[0]));
+    [1,-1].forEach(s=>{
+      g.add(sph(.042,.040,.042, .112*s, HEAD.y+.078, -.018, G[0]));   // 結び目
+      g.add(strand(G,[
+        [.126*s, HEAD.y+.056, -.034],
+        [.160*s, HEAD.y-.006, -.052],
+        [.186*s, HEAD.y-.104, -.044],
+        [.192*s, HEAD.y-.166, -.014],
+        [.184*s, HEAD.y-.222, .016],
+        [.166*s, HEAD.y-.266, .040],
+      ], .050, .020, 4));
+    });
+    return g;
+  },
+  hair_bob: ()=>{
+    const G=hairGrad(4), S=hairGrad(1,true)[0], g=new THREE.Group();
+    g.add(hairShell(S,{back:-.126})); g.add(bangs(G[0]));
+    g.add(hairRing(G[1], HEAD.y-.108, .114, .126, .028, 22));
+    g.add(hairRing(G[2], HEAD.y-.142, .106, .116, .024, 22));
+    [1,-1].forEach(s=>g.add(sideLock(G,s,.110,.032)));
+    return g;
+  },
+  hair_long: ()=>{
+    const G=hairGrad(4), S=hairGrad(1,true)[0], g=new THREE.Group();
+    g.add(hairShell(S,{back:-.115})); g.add(bangs(G[0]));
+    g.add(backMass(G,.255));
+    [1,-1].forEach(s=>g.add(sideLock(G,s,.210,.034)));
+    return g;
+  },
+  hair_wavy: ()=>{
+    const G=hairGrad(6), S=hairGrad(1,true)[0], g=new THREE.Group();
+    g.add(hairShell(S,{back:-.115})); g.add(bangs(G[0]));
+    g.add(backMass(G,.310,1.05));
+    [1,-1].forEach(s=>{
+      g.add(strand(G,[
+        [.114*s, HEAD.y+.010, -.024],
+        [.134*s, HEAD.y-.062, .004],
+        [.118*s, HEAD.y-.133, -.028],
+        [.140*s, HEAD.y-.204, .002],
+        [.122*s, HEAD.y-.271, -.024],
+      ], .042, .024, 4));
+    });
+    return g;
+  },
+  hair_pony: ()=>{
+    const G=hairGrad(5), S=hairGrad(1,true)[0], g=new THREE.Group();
+    g.add(hairShell(S,{back:-.070})); g.add(bangs(G[0]));
+    g.add(sph(.044,.040,.042, 0, HEAD.y+.052, -.126, G[0]));
+    g.add(strand(G,[
+      [0, HEAD.y+.024, -.150],
+      [0, HEAD.y-.044, -.160],
+      [0, HEAD.y-.114, -.150],
+      [0, HEAD.y-.178, -.126],
+      [0, HEAD.y-.232, -.094],
+    ], .048, .018, 4));
+    [1,-1].forEach(s=>g.add(sideLock(G,s,.132,.028)));
+    return g;
+  },
+  hair_side: ()=>{
+    const G=hairGrad(5), S=hairGrad(1,true)[0], g=new THREE.Group();
+    g.add(hairShell(S,{back:-.100})); g.add(bangs(G[0],1));
+    g.add(sph(.040,.038,.040, .120, HEAD.y+.028, -.024, G[0]));
+    g.add(strand(G,[
+      [.142, HEAD.y+.000, -.038],
+      [.166, HEAD.y-.062, -.046],
+      [.176, HEAD.y-.131, -.044],
+      [.170, HEAD.y-.195, -.030],
+      [.156, HEAD.y-.251, -.012],
+    ], .047, .020, 4));
+    g.add(sideLock(G,-1,.166,.034));
+    return g;
+  },
+  hair_bun: ()=>{
+    const G=hairGrad(4), S=hairGrad(1,true)[0], g=new THREE.Group();
+    g.add(hairShell(S,{back:-.060})); g.add(bangs(G[0]));
+    g.add(sph(.064,.058,.062, 0, HEAD.y+.138, -.056, G[2]));
+    g.add(sph(.032,.028,.030, .048, HEAD.y+.114, -.082, G[3]));
+    g.add(sph(.028,.024,.026, -.046, HEAD.y+.118, -.077, G[3]));
+    [1,-1].forEach(s=>g.add(sideLock(G,s,.142,.028)));
+    return g;
+  },
+
+  /* ===== 目 ===== */
+  eyes_round:   ()=>buildEyes({w:.039,h:.038,tilt:0,   brow:.06, lower:true}),
+  eyes_tare:    ()=>buildEyes({w:.036,h:.033,tilt:.16, brow:.20, iy:-.002, lower:true}),
+  eyes_tsuri:   ()=>buildEyes({w:.036,h:.030,tilt:-.22,brow:-.20}),
+  eyes_calm:    ()=>buildEyes({w:.037,h:.024,tilt:-.08,brow:-.05, browY:-.004}),
+  eyes_sparkle: ()=>buildEyes({w:.040,h:.041,tilt:.04, brow:.10, sparkle:true, lower:true}),
+
+  /* ===== 鼻 ===== */
+  nose_tiny: c=>{ const g=new THREE.Group(), m=mat(shade(c,.93));
+    g.add(sph(.009,.010,.011, 0, NOSEY, NOSEZ, m)); return g; },
+  nose_soft: c=>{ const g=new THREE.Group(), m=mat(shade(c,.93));
+    g.add(sph(.010,.013,.013, 0, NOSEY, NOSEZ, m));
+    g.add(sph(.013,.007,.010, 0, NOSEY-.012, NOSEZ-.004, m)); return g; },
+  nose_slim: c=>{ const g=new THREE.Group(), m=mat(shade(c,.93));
+    g.add(sph(.007,.019,.014, 0, NOSEY+.008, NOSEZ, m));
+    g.add(sph(.010,.007,.010, 0, NOSEY-.012, NOSEZ-.002, m)); return g; },
+
+  /* ===== 口 ===== */
+  mouth_small: ()=>{ const g=new THREE.Group();
+    g.add(pill(.026,.012,.014, 0, MTHY, MTHZ, mat("#c26a72",{roughness:.42}))); return g; },
+  mouth_smile: ()=>{
+    const g=new THREE.Group(), m=mat("#c26a72",{roughness:.42});
+    for(let i=-3;i<=3;i++){
+      const t=i/3;
+      g.add(sph(.006,.005,.006, i*.0060, MTHY+t*t*.008, MTHZ-t*t*.006, m));
+    }
+    return g;
+  },
+  mouth_grit: ()=>{
+    const g=new THREE.Group();
+    g.add(pill(.038,.018,.016, 0, MTHY, MTHZ-.002, mat("#a8535c",{roughness:.5})));
+    g.add(pill(.032,.008,.012, 0, MTHY+.003, MTHZ+.004, mat("#f5efe6",{roughness:.2})));
+    return g;
+  },
+  mouth_open: ()=>{
+    const g=new THREE.Group();
+    g.add(sph(.019,.016,.014, 0, MTHY-.002, MTHZ-.002, mat("#8e3f4a",{roughness:.5})));
+    g.add(pill(.030,.008,.012, 0, MTHY+.010, MTHZ+.004, mat("#f5efe6",{roughness:.2})));
+    return g;
+  },
+
+  /* ===== ヘッドギア ===== */
+  head_none: ()=>new THREE.Group(),
+  head_band: ()=>{
+    const g=new THREE.Group(), m=mat("#e05a86",{roughness:.85});
+    const r=cyl(.139,.141,.032, 0, HEAD.y+.056, -.004, m, null, 40); r.scale.z=1.10; g.add(r);
+    return g;
+  },
+  head_ribbon: ()=>{
+    const g=new THREE.Group(), m=mat("#e05a86",{roughness:.8});
+    const r=cyl(.138,.140,.022, 0, HEAD.y+.063, -.004, m, null, 40); r.scale.z=1.10; g.add(r);
+    [1,-1].forEach(s=>{
+      const w=sph(.042,.030,.023, .126*s, HEAD.y+.094, -.017, m);
+      w.rotation.z=.35*s; g.add(w);
+    });
+    g.add(sph(.016,.016,.016, 0, HEAD.y+.094, -.015, mat("#c04a6c",{roughness:.7})));
+    return g;
+  },
+  head_cap: ()=>{
+    const g=new THREE.Group(), m=mat("#242a36",{roughness:.88});
+    g.add(sph(.146,.086,.159, 0, HEAD.y+.037, -.008, m));
+    const brim=new THREE.Mesh(new THREE.CylinderGeometry(.139,.139,.013,36,1,false,0,Math.PI), m);
+    brim.position.set(0, HEAD.y+.026, .085); brim.rotation.set(-.14,-Math.PI/2,0); brim.scale.z=.82; g.add(brim);
+    g.add(sph(.015,.013,.015, 0, HEAD.y+.107, -.008, mat("#e05a86")));
+    return g;
+  },
+  head_beanie: ()=>{
+    const g=new THREE.Group(), m=mat("#7050ac",{roughness:1});
+    g.add(sph(.148,.100,.161, 0, HEAD.y+.039, -.008, m));
+    const r=cyl(.150,.150,.036, 0, HEAD.y+.026, -.006, mat("#5a3f8c",{roughness:1}), null, 40); r.scale.z=1.08; g.add(r);
+    return g;
+  },
+
+  /* ===== アイウェア ===== */
+  face_none: ()=>new THREE.Group(),
+  face_glasses: ()=>{
+    const g=new THREE.Group();
+    const fr=mat("#4a3226",{roughness:.4, metalness:.25});
+    [1,-1].forEach(s=>{
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(.042,.0042,10,30), fr);
+      ring.position.set(.052*s, EYEY, EYEZ+.022); g.add(ring);
+      const arm=pill(.014,.008,.064, .100*s, EYEY+.006, EYEZ-.052, fr); g.add(arm);
+    });
+    g.add(pill(.030,.006,.010, 0, EYEY+.004, EYEZ+.022, fr));
+    return g;
+  },
+  face_shades: ()=>{
+    const g=new THREE.Group();
+    const lens=mat("#14171f",{roughness:.10, metalness:.55});
+    const frame=mat("#22262e",{roughness:.35, metalness:.35});
+    [1,-1].forEach(s=>{
+      g.add(pill(.068,.040,.015, .052*s, EYEY+.002, EYEZ+.020, lens, [0,0,-.10*s]));
+      g.add(pill(.014,.009,.066, .104*s, EYEY+.008, EYEZ-.052, frame));
+    });
+    g.add(pill(.028,.010,.012, 0, EYEY+.004, EYEZ+.022, frame));
+    return g;
+  },
+
+  /* ===== ハンド ===== */
+  hands_none: s=>new THREE.Group(),
+  hands_gloves: s=>{
+    const m=mat("#242a36",{roughness:.82}), a=mat("#e05a86",{roughness:.65});
+    const g=new THREE.Group();
+    g.add(sph(.030,.042,.042, .222*s, .866, .015, m));
+    g.add(cyl(.028,.026,.028, .217*s, .908, .011, a, null, 28));
+    return g;
+  },
+  hands_wraps: s=>{
+    const m=mat("#f2e7ec",{roughness:1});
+    const g=new THREE.Group();
+    for(let i=0;i<3;i++){
+      const c=cyl(.027,.027,.016, .214*s, .906+i*.017, .010, m, null, 28);
+      c.rotation.z=.06*s; g.add(c);
+    }
+    return g;
+  },
+
+  /* ===== ウエスト ===== */
+  waist_none: ()=>new THREE.Group(),
+  waist_belt: ()=>{
+    const g=new THREE.Group(), lm=mat("#5a3a24",{roughness:.7});
+    const front=cyl(.108,.112,.058, 0, 1.102, .004, lm, null, 40); front.scale.z=.84; g.add(front);
+    const back=cyl(.111,.115,.094, 0, 1.112, -.008, lm, null, 40); back.scale.z=.62; g.add(back);
+    g.add(pill(.046,.046,.016, 0, 1.102, .094, mat("#c9c3b6",{roughness:.25, metalness:.65})));
+    return g;
+  },
+};
+
+function rebuildAccessories(){
+  [gHead,gHandL,gHandR,gWaist].forEach(g=>{ while(g.children.length) g.remove(g.children[0]); });
+  const e=state.equip;
+  const add=(grp,id,arg)=>{ const f=BUILD[id]; if(f){ const g=f(arg); if(g) grp.add(g); } };
+  add(gHead, e.hair, state.hairColor);
+  add(gHead, e.eyes);
+  add(gHead, e.nose, state.skin);
+  add(gHead, e.mouth, state.hairColor);
+  add(gHead, e.head);
+  add(gHead, e.face);
+  const hf=BUILD[e.hands];
+  if(hf){ const l=hf(1); if(l) gHandL.add(l); const r=hf(-1); if(r) gHandR.add(r); }
+  add(gWaist, e.waist);
+}
+
+/* ==========================================================
+   4.5 骨格(種目モーション用の簡易リグ)
+   ========================================================== */
+/* 16本のボーンによる線形ブレンドスキニング。
+   pelvis(骨盤) / hip(股関節ヒンジ) / spine(腰椎) を分けてあるのがポイントで、
+   デッドリフトやベントオーバーロウの「股関節から折る」動きと、
+   クランチやサイドベンドの「背骨を丸める/横に倒す」動きを別々に扱える。
+   脚は pelvis の子なので、股関節を折っても脚は付いてこない。 */
+const BONE = [
+  /*0*/ {n:"pelvis", p:[0, .950, 0],      parent:-1},
+  /*1*/ {n:"hip",    p:[0, 1.000, 0],     parent:0},
+  /*2*/ {n:"spine",  p:[0, 1.135, 0],     parent:1},
+  /*3*/ {n:"head",   p:[0, 1.460, 0],     parent:2},
+  /*4*/ {n:"armUpL", p:[ .098,1.396,0],   parent:2},
+  /*5*/ {n:"armFoL", p:[ .188,1.136,.008],parent:4},
+  /*6*/ {n:"handL",  p:[ .215, .912,.009],parent:5},
+  /*7*/ {n:"armUpR", p:[-.098,1.396,0],   parent:2},
+  /*8*/ {n:"armFoR", p:[-.188,1.136,.008],parent:7},
+  /*9*/ {n:"handR",  p:[-.215, .912,.009],parent:8},
+  /*10*/{n:"thighL", p:[ .070,1.020,0],   parent:0},
+  /*11*/{n:"shinL",  p:[ .097, .504,0],   parent:10},
+  /*12*/{n:"footL",  p:[ .102, .105,.020], parent:11},
+  /*13*/{n:"thighR", p:[-.070,1.020,0],   parent:0},
+  /*14*/{n:"shinR",  p:[-.097, .504,0],   parent:13},
+  /*15*/{n:"footR",  p:[-.102, .105,.020], parent:14},
+];
+const B_PELVIS=0, B_HIP=1, B_SPINE=2, B_HEAD=3, B_ARM_L=4, B_ARM_R=7, B_LEG_L=10, B_LEG_R=13;
+
+const bone0 = new Uint8Array(vCount), bone1 = new Uint8Array(vCount);
+const boneW = new Float32Array(vCount);   // bone1 側の重み(bone0 は 1-boneW)
+{
+  for(let i=0;i<vCount;i++){
+    const y=basePos[i*3+1], L=limbs[i];
+    let b0=0,b1=0,w=0;
+    if(L===0){
+      if(y>1.39)      { b0=B_SPINE; b1=B_HEAD;  w=smoothstep(1.39,1.50,y); }
+      else if(y>1.06) { b0=B_HIP;   b1=B_SPINE; w=smoothstep(1.10,1.32,y); }
+      else            { b0=B_PELVIS;b1=B_HIP;   w=smoothstep(.93,1.06,y); }
+    }else if(L===1||L===2){
+      const o = L===1 ? B_ARM_L : B_ARM_R;
+      if(y>1.02) { b0=o;   b1=o+1; w=smoothstep(1.20,1.08,y); }
+      else       { b0=o+1; b1=o+2; w=smoothstep(.96,.89,y); }
+    }else{
+      const o = L===3 ? B_LEG_L : B_LEG_R;
+      if(y>.62)      { b0=B_PELVIS; b1=o;  w=smoothstep(1.06,.97,y); }
+      else if(y>.34) { b0=o;   b1=o+1; w=smoothstep(.58,.46,y); }
+      else           { b0=o+1; b1=o+2; w=smoothstep(.21,.13,y); }
+    }
+    bone0[i]=b0; bone1[i]=b1; boneW[i]=w;
+  }
+}
+
+/* ボーン行列。M = M_parent * T(p)R(q)T(-p) */
+const boneMat = BONE.map(()=>new THREE.Matrix4());
+const boneQ   = BONE.map(()=>new THREE.Quaternion());
+/* オイラー順は XZY(= Rx·Rz·Ry)。ベクトルには ry → rz → rx の順で効くので、
+   肩なら「ry: 上腕のひねり → rz: 横に開く → rx: 前後に振る」と直感的に書ける。 */
+const _e = new THREE.Euler(0,0,0,"XZY");
+const _m = new THREE.Matrix4(), _t = new THREE.Matrix4();
+let poseActive = false;
+
+function updateBoneMatrices(){
+  for(let i=0;i<BONE.length;i++){
+    const b=BONE[i];
+    _m.makeRotationFromQuaternion(boneQ[i]);
+    _t.makeTranslation(b.p[0], b.p[1], b.p[2]);
+    _m.premultiply(_t);
+    _m.multiply(_t.makeTranslation(-b.p[0], -b.p[1], -b.p[2]));
+    if(b.parent<0) boneMat[i].copy(_m);
+    else boneMat[i].multiplyMatrices(boneMat[b.parent], _m);
+  }
+  gHead.matrix.copy(boneMat[B_HEAD]);
+  gHandL.matrix.copy(boneMat[B_ARM_L+2]);
+  gHandR.matrix.copy(boneMat[B_ARM_R+2]);
+  gWaist.matrix.copy(boneMat[B_SPINE]);
+}
+function resetPose(){
+  boneQ.forEach(q=>q.set(0,0,0,1));
+  poseRoot.position.set(0,0,0); poseRoot.rotation.set(0,0,0);
+  poseRoot.updateMatrix();
+  poseActive=false;
+  updateBoneMatrices();
+}
+
+/* ==========================================================
+   5. 変形
+   ========================================================== */
+const ampArr = PART_IDS.map(p=>REGION[p].amp);
+const curArr = new Float32Array(PART_IDS.length);
+const flashArr = new Float32Array(PART_IDS.length);
+const wideArr = new Float32Array(PART_IDS.length);   // 部位ごとの分布拡幅量(0〜1)
+const DMAX = .190;                                    // 一頂点あたりの隆起のソフト上限
+const tmpCol=new THREE.Color(), skinCol=new THREE.Color(), topCol=new THREE.Color(), btmCol=new THREE.Color();
+const shoeCol=new THREE.Color(), sockCol=new THREE.Color(SOCK_COLOR);
+
+const restPos = new Float32Array(vCount*3);   // 筋肥大まで反映した「ポーズ前」の頂点
+const restNrm = new Float32Array(vCount*3);   // その静止ポーズでの法線
+
+function deform(){
+  const pos=restPos;
+  const col=geometry.attributes.color.array;
+  skinCol.set(state.skin); topCol.set(state.topColor); btmCol.set(state.bottomColor);
+  const topFn=COVER[state.equip.top]||COVER.top_none, btmFn=COVER[state.equip.bottom]||COVER.top_none;
+  const shoeFn=SHOES[state.equip.shoes]||SHOES.shoes_none;
+  shoeCol.set(state.shoeColor);
+  const bulk=state.bulk;
+
+  // 成長・バルク倍率が上がるほど、狭い分布から広い分布へ寄せる。
+  // 振幅だけが伸びてトゲになるのを防ぎ、筋腹が「広がりながら盛り上がる」動きになる。
+  for(let k=0;k<curArr.length;k++)
+    wideArr[k] = Math.min(1, curArr[k]*(.18+bulk*.055));
+
+  // 全体の厚み(平均成長による増量感)
+  let avg=0; for(let k=0;k<curArr.length;k++) avg+=curArr[k];
+  avg /= curArr.length;
+  const mass = 1 + avg*.075*Math.min(1.5, bulk/3.2);
+
+  for(let i=0;i<vCount;i++){
+    const vw=vertexWeights[i];
+    let disp=0, heat=0, flash=0;
+    for(let k=0;k<vw.length;k+=3){
+      const pi=vw[k];
+      const w = vw[k+1] + (vw[k+2]-vw[k+1])*wideArr[pi];
+      disp += curArr[pi]*w*ampArr[pi];
+      heat += curArr[pi]*w;
+      flash += flashArr[pi]*w;
+    }
+    disp *= bulk;
+    disp = disp/(1+disp/DMAX);          // ソフト飽和(尖りの頭打ち)
+    const bx=basePos[i*3], by=basePos[i*3+1], bz=basePos[i*3+2];
+    const mx = 1 + (mass-1)*massFade[i];
+    pos[i*3]   = bx*mx + baseNrm[i*3]  *disp;
+    pos[i*3+1] = by    + baseNrm[i*3+1]*disp;
+    pos[i*3+2] = bz*mx + baseNrm[i*3+2]*disp;
+
+    if(state.anatomyMode){
+      tmpCol.copy(COL_WIRE).lerp(COL_HOT, Math.min(1, heat*.9));
+    }else{
+      const z=zones[i];
+      const sc=shoeFn(z,bx,by);
+      if(sc===2)              tmpCol.copy(shoeCol);
+      else if(sc===1)         tmpCol.copy(sockCol);
+      else if(btmFn(z,bx,by)) tmpCol.copy(btmCol);
+      else if(topFn(z,bx,by)) tmpCol.copy(topCol);
+      else                    tmpCol.copy(skinCol);
+      if(heat>0) tmpCol.lerp(COL_HOT, Math.min(.30, heat*.20));
+    }
+    if(flash>0) tmpCol.lerp(COL_FLASH, Math.min(1, flash));
+    col[i*3]=tmpCol.r; col[i*3+1]=tmpCol.g; col[i*3+2]=tmpCol.b;
+  }
+  geometry.attributes.color.needsUpdate=true;
+
+  // 面から法線を作り直すのは成長が変わったこの瞬間だけ。
+  // 毎フレームのポーズ更新では、この法線をボーン行列で回すだけにして負荷を抑える。
+  geometry.attributes.position.array.set(restPos);
+  geometry.computeVertexNormals();
+  restNrm.set(geometry.attributes.normal.array);
+
+  applyPose();
+}
+
+/* 骨格ポーズを restPos に適用して実際の頂点を作る。毎フレーム呼ばれるのはこちら */
+function applyPose(){
+  const pos=geometry.attributes.position.array;
+  const nrm=geometry.attributes.normal.array;
+  if(!poseActive){
+    pos.set(restPos); nrm.set(restNrm);
+  }else{
+    const E=boneMat.map(m=>m.elements);
+    for(let i=0;i<vCount;i++){
+      const w1=boneW[i], w0=1-w1;
+      const A=E[bone0[i]], B=E[bone1[i]];
+      const m0=A[0]*w0+B[0]*w1, m1=A[1]*w0+B[1]*w1, m2 =A[2] *w0+B[2] *w1;
+      const m4=A[4]*w0+B[4]*w1, m5=A[5]*w0+B[5]*w1, m6 =A[6] *w0+B[6] *w1;
+      const m8=A[8]*w0+B[8]*w1, m9=A[9]*w0+B[9]*w1, m10=A[10]*w0+B[10]*w1;
+      const x=restPos[i*3], y=restPos[i*3+1], z=restPos[i*3+2];
+      pos[i*3]   = m0*x + m4*y + m8 *z + (A[12]*w0+B[12]*w1);
+      pos[i*3+1] = m1*x + m5*y + m9 *z + (A[13]*w0+B[13]*w1);
+      pos[i*3+2] = m2*x + m6*y + m10*z + (A[14]*w0+B[14]*w1);
+      const nx=restNrm[i*3], ny=restNrm[i*3+1], nz=restNrm[i*3+2];
+      let ax=m0*nx+m4*ny+m8*nz, ay=m1*nx+m5*ny+m9*nz, az=m2*nx+m6*ny+m10*nz;
+      const l=Math.hypot(ax,ay,az)||1;
+      nrm[i*3]=ax/l; nrm[i*3+1]=ay/l; nrm[i*3+2]=az/l;
+    }
+  }
+  geometry.attributes.position.needsUpdate=true;
+  geometry.attributes.normal.needsUpdate=true;
+  updateProps();
+}
+
+/* ==========================================================
+   5.5 器具とマシン
+   ========================================================== */
+/* 器具は「ポーズから逆算して置く」方針。手の位置・足の位置・背中のラインを
+   ボーン行列から求めてバーやパッドを合わせるので、姿勢を変えても
+   器具の座標を書き直す必要がない。 */
+const propGroup = new THREE.Group(); avatar.add(propGroup);    // 手や足から逆算して置くもの
+const rigGroup  = new THREE.Group(); avatar.add(rigGroup);      // 床に据え置くもの
+
+const steelM  = new THREE.MeshStandardMaterial({color:0xb9bec8, roughness:.32, metalness:.72});
+const plateM  = new THREE.MeshStandardMaterial({color:0x22262e, roughness:.62, metalness:.15});
+const padM    = new THREE.MeshStandardMaterial({color:0x2c313d, roughness:.88});
+const frameM  = new THREE.MeshStandardMaterial({color:0x5c6472, roughness:.42, metalness:.55});
+const accentM = new THREE.MeshStandardMaterial({color:0xe05a86, roughness:.55});
+const cableM  = new THREE.MeshStandardMaterial({color:0x1a1d24, roughness:.5});
+
+const bx=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
+const tb=(r,h,m,seg)=>new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg||18), m);
+
+/* --- 手に持つもの --- */
+function makeBar(){
+  const g=new THREE.Group();
+  const bar=tb(.013,1,steelM,20); bar.rotation.z=Math.PI/2; g.add(bar);
+  [1,-1].forEach(s=>{
+    [0,1].forEach(k=>{
+      const p=tb(.088-k*.013,.026,plateM,26); p.rotation.z=Math.PI/2; p.position.x=(.30+k*.031)*s; g.add(p);
+    });
+    const c=tb(.022,.034,steelM,16); c.rotation.z=Math.PI/2; c.position.x=.255*s; g.add(c);
+  });
+  return g;
+}
+function makeCableBar(){
+  const g=new THREE.Group();
+  const bar=tb(.014,.46,steelM,18); bar.rotation.z=Math.PI/2; g.add(bar);
+  [1,-1].forEach(s=>{ const e=tb(.019,.030,steelM,14); e.rotation.z=Math.PI/2; e.position.x=.20*s; g.add(e); });
+  return g;
+}
+function makeLatBar(){
+  const g=new THREE.Group();
+  const bar=tb(.014,.92,steelM,18); bar.rotation.z=Math.PI/2; g.add(bar);
+  [1,-1].forEach(s=>{
+    const e=tb(.014,.20,steelM,14); e.position.set(.49*s,-.07,0); e.rotation.z=.80*s; g.add(e);
+  });
+  return g;
+}
+function makeDumbbell(){
+  const g=new THREE.Group();
+  const bar=tb(.012,.20,steelM,16); bar.rotation.z=Math.PI/2; g.add(bar);
+  [1,-1].forEach(s=>{
+    const p=tb(.056,.048,plateM,20); p.rotation.z=Math.PI/2; p.position.x=.082*s; g.add(p);
+  });
+  return g;
+}
+const PROPS = { bar:makeBar(), cableBar:makeCableBar(), latBar:makeLatBar() };
+Object.values(PROPS).forEach(p=>{ p.visible=false; propGroup.add(p); });
+const dbProp=[makeDumbbell(),makeDumbbell()];
+dbProp.forEach(d=>{ d.visible=false; propGroup.add(d); });
+
+/* --- 床に据え置くマシン部品 --- */
+const RIGP = {};
+RIGP.pad    = bx(.36,1,.10,padM);
+RIGP.postA  = tb(.026,1,frameM,14);
+RIGP.postB  = tb(.026,1,frameM,14);
+RIGP.postC  = tb(.026,1,frameM,14);
+RIGP.seat   = bx(.38,.10,.46,padM);
+RIGP.roller = new THREE.Group();
+{
+  const r=tb(.062,.42,padM,20); r.rotation.z=Math.PI/2; RIGP.roller.add(r);
+  const axle=tb(.014,.52,steelM,12); axle.rotation.z=Math.PI/2; RIGP.roller.add(axle);
+}
+RIGP.plate  = bx(.52,.06,.52,frameM);
+RIGP.tower  = new THREE.Group();
+{
+  const col=bx(.20,2.10,.24,frameM); col.position.set(0,1.05,-.66); RIGP.tower.add(col);
+  const arm=bx(.13,.11,.90,frameM);  arm.position.set(0,2.06,-.26); RIGP.tower.add(arm);
+  const pul=tb(.055,.045,steelM,18); pul.rotation.x=Math.PI/2; pul.position.set(0,2.03,.16); RIGP.tower.add(pul);
+  const w=bx(.28,.90,.16,plateM);    w.position.set(0,.52,-.66); RIGP.tower.add(w);
+  const base=bx(.46,.08,.70,frameM); base.position.set(0,.04,-.60); RIGP.tower.add(base);
+}
+RIGP.cable  = tb(.010,1,cableM,8);
+RIGP.pullup = new THREE.Group();
+{
+  [1,-1].forEach(s=>{
+    const u=bx(.11,2.28,.13,frameM); u.position.set(.62*s,1.14,-.30); RIGP.pullup.add(u);
+    const f=bx(.13,.09,.66,frameM);  f.position.set(.62*s,.045,-.02); RIGP.pullup.add(f);
+    const br=bx(.10,.09,.36,frameM); br.position.set(.62*s,2.20,-.14); RIGP.pullup.add(br);
+  });
+  const bar=tb(.017,1.24,steelM,18); bar.rotation.z=Math.PI/2; bar.position.set(0,2.22,.02); RIGP.pullup.add(bar);
+}
+RIGP.rack = new THREE.Group();
+{
+  [1,-1].forEach(s=>{
+    const u=bx(.11,1.62,.13,frameM); u.position.set(.54*s,.81,-.28); RIGP.rack.add(u);
+    const f=bx(.13,.09,.66,frameM);  f.position.set(.54*s,.045,-.02); RIGP.rack.add(f);
+    const h=bx(.07,.09,.22,accentM); h.position.set(.54*s,1.36,-.14); RIGP.rack.add(h);
+  });
+}
+RIGP.benchRack = new THREE.Group();
+{
+  [1,-1].forEach(s=>{
+    const u=bx(.09,1,.11,frameM); u.position.x=.34*s; RIGP.benchRack.add(u);
+  });
+}
+RIGP.step = bx(.74,.11,.36,frameM);
+RIGP.mat  = bx(.70,.025,1.70,accentM);
+Object.values(RIGP).forEach(p=>{ p.visible=false; rigGroup.add(p); });
+
+let rigSpec = null, propKind = "none";
+const _a=new THREE.Vector3(), _b=new THREE.Vector3(), _c=new THREE.Vector3(),
+      _dir=new THREE.Vector3(), _nrm=new THREE.Vector3(),
+      _uX=new THREE.Vector3(1,0,0), _uY=new THREE.Vector3(0,1,0);
+const HAND_L=[ .221,.866,.014], HAND_R=[-.221,.866,.014];
+
+function wp(out,b,x,y,z){ return out.set(x,y,z).applyMatrix4(boneMat[b]).applyMatrix4(poseRoot.matrix); }
+function wd(out,b,x,y,z){ return out.set(x,y,z).transformDirection(boneMat[b]).transformDirection(poseRoot.matrix).normalize(); }
+function postTo(post,p){
+  const h=Math.max(.06, p.y-.03);
+  post.visible=true; post.scale.set(1,h,1); post.position.set(p.x, h/2, p.z);
+}
+
+function updateProps(){
+  Object.values(PROPS).forEach(p=>p.visible=false);
+  dbProp.forEach(d=>d.visible=false);
+  Object.values(RIGP).forEach(p=>p.visible=false);
+  if(!poseActive) return;
+
+  wp(_a,B_ARM_L+2,HAND_L[0],HAND_L[1],HAND_L[2]);
+  wp(_b,B_ARM_R+2,HAND_R[0],HAND_R[1],HAND_R[2]);
+  const handMid=_c.addVectors(_a,_b).multiplyScalar(.5).clone();
+  const gripW=_a.distanceTo(_b);
+
+  let heldBar=null;
+  if(PROPS[propKind]){
+    heldBar=PROPS[propKind];
+    heldBar.visible=true;
+    heldBar.position.copy(handMid);
+    _dir.subVectors(_a,_b).normalize();
+    heldBar.quaternion.setFromUnitVectors(_uX,_dir);
+    if(propKind==="bar") heldBar.scale.set(Math.max(.60, gripW+.66),1,1);
+  }else if(propKind==="dumbbell"){
+    [[_a,B_ARM_L+2,0],[_b,B_ARM_R+2,1]].forEach(([p,bi,k])=>{
+      const d=dbProp[k]; d.visible=true; d.position.copy(p);
+      wd(_dir,bi,0,0,1); d.quaternion.setFromUnitVectors(_uX,_dir);
+    });
+  }
+
+  if(!rigSpec) return;
+  const R=rigSpec;
+
+  if(R.pad){
+    const sd = R.padFront ? 1 : -1;          // うつ伏せの種目は腹側にパッドを置く
+    wp(_a, B_SPINE,  0, R.padTop ?? 1.42, .10*sd);
+    wp(_b, B_PELVIS, 0, R.padBottom ?? .92, .12*sd);
+    _dir.subVectors(_a,_b); const len=_dir.length(); _dir.normalize();
+    wd(_nrm, B_SPINE, 0,0,sd);
+    const L=len+(R.padExt ?? .55);
+    _c.addVectors(_a,_b).multiplyScalar(.5)
+      .addScaledVector(_dir, R.padShift ?? 0)
+      .addScaledVector(_nrm, .064);
+    RIGP.pad.visible=true;
+    RIGP.pad.position.copy(_c);
+    RIGP.pad.scale.set(1,L,1);
+    RIGP.pad.quaternion.setFromUnitVectors(_uY,_dir);
+    if(R.posts!==false){
+      _a.copy(_c).addScaledVector(_dir, L/2-.18); postTo(RIGP.postA,_a);
+      _b.copy(_c).addScaledVector(_dir,-(L/2-.18)); postTo(RIGP.postB,_b);
+    }
+    if(R.benchRack){
+      RIGP.benchRack.visible=true;
+      _a.copy(_c).addScaledVector(_dir, L/2-.02);
+      RIGP.benchRack.position.set(0,0,_a.z);
+      RIGP.benchRack.children.forEach(u=>{
+        const h=Math.max(.2,_a.y+.44); u.scale.set(1,h,1); u.position.y=h/2;
+      });
+    }
+  }
+  if(R.seat){
+    wp(_a,B_PELVIS,0,.90,-.04);
+    RIGP.seat.visible=true; RIGP.seat.position.set(0,_a.y-.10,_a.z);
+    _b.set(0,_a.y-.10,_a.z); postTo(RIGP.postC,_b);
+  }
+  if(R.roller){
+    const back = R.roller==="back" ? -1 : 1;
+    wp(_a,B_LEG_L+2, .102,.30,.05*back);
+    wp(_b,B_LEG_R+2,-.102,.30,.05*back);
+    _c.addVectors(_a,_b).multiplyScalar(.5);
+    wd(_dir,B_LEG_L+1,0,0,back);
+    RIGP.roller.visible=true;
+    RIGP.roller.position.copy(_c).addScaledVector(_dir,.11);
+  }
+  if(R.plate){
+    wp(_a,B_LEG_L+2, .102,.05,.03);
+    wp(_b,B_LEG_R+2,-.102,.05,.03);
+    _c.addVectors(_a,_b).multiplyScalar(.5);
+    wd(_dir,B_LEG_L+2,0,-1,0);      // 足裏の向き
+    RIGP.plate.visible=true;
+    RIGP.plate.position.copy(_c).addScaledVector(_dir,.06);
+    RIGP.plate.quaternion.setFromUnitVectors(_uY,_dir);
+  }
+  if(R.tower){
+    RIGP.tower.visible=true;
+    if(heldBar){
+      _a.set(0,2.03,.16); _b.copy(heldBar.position);
+      _dir.subVectors(_a,_b); const l=_dir.length(); _dir.normalize();
+      RIGP.cable.visible=true;
+      RIGP.cable.scale.set(1,l,1);
+      RIGP.cable.position.addVectors(_a,_b).multiplyScalar(.5);
+      RIGP.cable.quaternion.setFromUnitVectors(_uY,_dir);
+    }
+  }
+  if(R.pullup) RIGP.pullup.visible=true;
+  if(R.rack)   RIGP.rack.visible=true;
+  if(R.step){
+    wp(_a,B_LEG_L+2,0,.02,.05);
+    RIGP.step.visible=true; RIGP.step.position.set(0,.055,_a.z+.03);
+  }
+  if(R.mat){
+    wp(_a,B_PELVIS,0,.95,-.10);
+    wp(_b,B_HEAD,0,1.62,0);
+    RIGP.mat.visible=true; RIGP.mat.position.set(0,.012,(_a.z+_b.z)/2+.30);
+  }
+}
+function setRig(prop, rig){ propKind = prop||"none"; rigSpec = rig||null; }
+
+/* ==========================================================
+   6. 成長・XP・ゴールド
+   ========================================================== */
+function logVolume(l){
+  const ex=EXERCISES.find(e=>e.name===l.name); if(!ex) return 0;
+  const w = l.kg>0 ? l.kg : state.weightKg*(ex.bw ?? .5);
+  return w*l.set*l.rep;
+}
+function recomputeFromLogs(){
+  const vol={}; PART_IDS.forEach(p=>vol[p]=0);
+  state.logs.forEach(l=>{
+    const ex=EXERCISES.find(e=>e.name===l.name); if(!ex) return;
+    const v=logVolume(l);
+    for(const p in ex.c) vol[p]+=v*ex.c[p];
+  });
+  PART_IDS.forEach(p=>{
+    const [T,M]=TIERS[PARTS[p].tier];
+    state.target[p] = vol[p]<=0 ? 0 : Math.min(1, Math.log(1+vol[p]/T)/Math.log(1+M/T));
+  });
+  syncSliders(); renderStatus();
+}
+function gainXp(amount){
+  state.xp+=amount; state.totalXp+=amount;
+  let leveled=0, goldGained=0;
+  while(state.xp>=xpNeed(state.level)){
+    state.xp-=xpNeed(state.level); state.level++; leveled++;
+    const g=goldReward(state.level); state.gold+=g; goldGained+=g;
+  }
+  renderHud();
+  if(leveled){
+    showLevelUp(state.level, goldGained);
+    Audio2.sfxLevelUp();
+    setTimeout(()=>say("levelUp", state.level, {interrupt:true}), 700);
+    renderShop(); renderCustom();
+  }
+}
+function showLevelUp(lv,gold){
+  const el=document.getElementById("lvUp");
+  document.getElementById("lvUpTxt").textContent="Lv."+lv;
+  document.getElementById("lvUpGold").textContent="+"+gold+" G";
+  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+}
+
+/* ==========================================================
+   6.5 種目モーション
+   ========================================================== */
+/* 各種目に開始姿勢(a)と終了姿勢(b)を持たせ、往復で補間する。
+   角度は [rx, ry, rz] のオイラー角(ラジアン / 順序 XZY)。
+     肩   rx: 前後に振る(負=前)  ry: 上腕のひねり  rz: 横に開く(正=外)
+     肘   rx: 負で曲げる
+     股   rx: 負で前に上げる     rz: 正で外に開く
+     膝   rx: 正で曲げる
+     足首 rx: 正でつま先を下げる
+     hip  = 股関節から上体を折る(正で前傾) / spine = 腰椎を丸める(正で前屈)・横に倒す
+     ※ 体幹は上向き、四肢は下向きなので、前に倒す向きの符号が逆になる
+   左右対称の部位は片側だけ書けば、反対側は ry と rz を反転して自動生成される。
+   root は [rx,ry,rz,px,py,pz] で体ごとの姿勢。py は接地補正で上書きされる。 */
+const SUPINE       = [-Math.PI/2,0,0, 0,.56,.88];   // ベンチに仰向け
+const SUPINE_FLOOR = [-Math.PI/2,0,0, 0,.14,.88];   // 床に仰向け
+const PRONE        = [ Math.PI/2,0,0, 0,.50,-.88];  // うつ伏せ
+const SEATED       = [0,0,0, 0,-.42,0];             // 着席
+const TWIST        = 1.571;                          // 上腕を外にひねる(肘が下を向く)
+
+const CAM_STAND  = {y:.95, h:1.36, d:3.40};
+const CAM_LOW    = {y:.82, h:1.20, d:3.35};
+const CAM_LIE    = {y:.60, h:1.52, d:3.10};
+const CAM_FLOOR  = {y:.42, h:1.12, d:2.85};
+const CAM_SEAT   = {y:.82, h:1.26, d:3.10};
+const CAM_HANG   = {y:1.42, h:1.78, d:3.95};
+
+const MOTIONS = {
+  "ベンチプレス":{prop:"bar", ground:false, speed:1.0, cam:CAM_LIE,
+    rig:{pad:true, benchRack:true, padTop:1.44, padBottom:.90},
+    a:{root:SUPINE, thigh:[0,0,.16], shin:[1.50,0,0], armUp:[.18,0,1.16], armFo:[-1.53,0,0]},
+    b:{root:SUPINE, thigh:[0,0,.16], shin:[1.50,0,0], armUp:[-1.50,0,.24], armFo:[-.10,0,0]}},
+
+  "インクラインベンチプレス":{prop:"bar", speed:1.0, cam:{y:.86,h:1.44,d:3.25},
+    rig:{pad:true, benchRack:true, padTop:1.44, padBottom:.88, padExt:.40},
+    a:{root:[-.80,0,0,0,0,.30], thigh:[-.79,0,.14], shin:[1.57,0,0], armUp:[.16,0,1.12], armFo:[-1.52,0,0]},
+    b:{root:[-.80,0,0,0,0,.30], thigh:[-.79,0,.14], shin:[1.57,0,0], armUp:[-1.48,0,.24], armFo:[-.10,0,0]}},
+
+  "ダンベルフライ":{prop:"dumbbell", ground:false, speed:.85, cam:CAM_LIE,
+    rig:{pad:true, padTop:1.44, padBottom:.90},
+    a:{root:SUPINE, thigh:[0,0,.16], shin:[1.50,0,0], armUp:[.12,0,1.46], armFo:[-.55,0,0]},
+    b:{root:SUPINE, thigh:[0,0,.16], shin:[1.50,0,0], armUp:[-1.34,0,.28], armFo:[-.50,0,0]}},
+
+  "ショルダープレス":{prop:"dumbbell", speed:1.0, cam:CAM_STAND,
+    a:{armUp:[0,TWIST,1.40], armFo:[-1.75,0,0]},
+    b:{armUp:[0,TWIST,2.78], armFo:[-.14,0,0]}},
+
+  "サイドレイズ":{prop:"dumbbell", speed:.9, cam:CAM_STAND,
+    a:{armUp:[0,0,.10], armFo:[-.16,0,0]},
+    b:{armUp:[0,0,1.55], armFo:[-.18,0,0]}},
+
+  "リアレイズ":{prop:"dumbbell", speed:.9, cam:CAM_LOW,
+    // 上体を倒しても腕は重力どおり真下。armUp の rx で hip の傾きを打ち消している
+    a:{hip:[1.20,0,0], thigh:[-.26,0,0], shin:[.56,0,0], armUp:[-1.20,0,.10], armFo:[-.26,0,0]},
+    b:{hip:[1.20,0,0], thigh:[-.26,0,0], shin:[.56,0,0], armUp:[-1.20,0,1.52], armFo:[-.26,0,0]}},
+
+  "アームカール":{prop:"bar", speed:1.0, cam:CAM_STAND,
+    a:{armUp:[.04,0,.11], armFo:[-.36,0,0]},
+    b:{armUp:[-.18,0,.13], armFo:[-2.50,0,0]}},
+
+  "ハンマーカール":{prop:"dumbbell", speed:1.0, cam:CAM_STAND,
+    a:{armUp:[.04,0,.14], armFo:[-.34,0,0]},
+    b:{armUp:[-.14,0,.16], armFo:[-2.42,0,0]}},
+
+  "トライセプスプレスダウン":{prop:"cableBar", speed:1.1, cam:CAM_STAND,
+    rig:{tower:true},
+    a:{hip:[.22,0,0], armUp:[-.10,0,.09], armFo:[-1.95,0,0]},
+    b:{hip:[.22,0,0], armUp:[-.10,0,.09], armFo:[-.16,0,0]}},
+
+  "ラットプルダウン":{prop:"latBar", ground:false, speed:.95, cam:CAM_SEAT,
+    rig:{tower:true, seat:true},
+    a:{root:SEATED, thigh:[-1.45,0,.14], shin:[1.45,0,0], armUp:[0,TWIST,2.55], armFo:[-.22,0,0]},
+    b:{root:SEATED, thigh:[-1.45,0,.14], shin:[1.45,0,0], armUp:[0,TWIST,1.10], armFo:[-2.15,0,0]}},
+
+  "懸垂":{prop:"none", ground:false, hang:2.20, speed:.8, cam:CAM_HANG,
+    rig:{pullup:true},
+    a:{thigh:[.22,0,.10], shin:[1.15,0,0], armUp:[0,TWIST,2.78], armFo:[-.14,0,0]},
+    b:{thigh:[.22,0,.10], shin:[1.15,0,0], armUp:[0,TWIST,2.30], armFo:[-1.95,0,0]}},
+
+  "ベントオーバーロウ":{prop:"bar", speed:1.0, cam:CAM_LOW,
+    a:{hip:[1.00,0,0], thigh:[-.26,0,0], shin:[.56,0,0], armUp:[-1.00,0,.10], armFo:[-.15,0,0]},
+    b:{hip:[1.00,0,0], thigh:[-.26,0,0], shin:[.56,0,0], armUp:[-1.42,0,.16], armFo:[-1.90,0,0]}},
+
+  "デッドリフト":{prop:"bar", speed:.8, cam:CAM_LOW,
+    a:{hip:[1.05,0,0], thigh:[-.50,0,.08], shin:[.88,0,0], armUp:[-1.05,0,.09], armFo:[-.08,0,0]},
+    b:{hip:[0,0,0],     thigh:[0,0,0],      shin:[0,0,0],   armUp:[0,0,.08],   armFo:[-.06,0,0]}},
+
+  "スクワット":{prop:"bar", speed:.8, cam:{y:.84,h:1.28,d:3.45},
+    rig:{rack:true},
+    a:{armUp:[.28,TWIST,1.85], armFo:[-2.35,0,0]},
+    b:{hip:[.42,0,0], thigh:[-1.15,0,.22], shin:[1.55,0,0], foot:[-.28,0,0],
+       armUp:[.28,TWIST,1.85], armFo:[-2.35,0,0]}},
+
+  "レッグプレス":{prop:"none", ground:false, speed:.9, cam:{y:.82,h:1.46,d:3.45},
+    rig:{pad:true, plate:true, padTop:1.44, padBottom:.86, padExt:.44},
+    a:{root:[-.92,0,0,0,.42,.52], thigh:[-1.62,0,.20], shin:[1.66,0,0], armUp:[.12,0,.34], armFo:[-.30,0,0]},
+    b:{root:[-.92,0,0,0,.42,.52], thigh:[-1.14,0,.14], shin:[.20,0,0],  armUp:[.12,0,.34], armFo:[-.30,0,0]}},
+
+  "レッグエクステンション":{prop:"none", ground:false, speed:1.0, cam:CAM_SEAT,
+    rig:{seat:true, pad:true, padTop:1.42, padBottom:1.02, padExt:.30, roller:"front"},
+    a:{root:SEATED, hip:[-.18,0,0], thigh:[-1.48,0,.13], shin:[1.48,0,0], armUp:[.16,0,.20], armFo:[-.55,0,0]},
+    b:{root:SEATED, hip:[-.18,0,0], thigh:[-1.48,0,.13], shin:[.06,0,0],  armUp:[.16,0,.20], armFo:[-.55,0,0]}},
+
+  "レッグカール":{prop:"none", ground:false, speed:1.0, cam:{y:.58,h:1.42,d:3.10},
+    rig:{pad:true, padFront:true, roller:"back", padTop:1.44, padBottom:.90},
+    a:{root:PRONE, shin:[.12,0,0], armUp:[0,TWIST,2.45], armFo:[-.30,0,0]},
+    b:{root:PRONE, shin:[2.05,0,0],armUp:[0,TWIST,2.45], armFo:[-.30,0,0]}},
+
+  "カーフレイズ":{prop:"dumbbell", speed:1.25, cam:CAM_STAND, groundToe:true, groundY:.11,
+    rig:{step:true},
+    a:{foot:[-.45,0,0], armUp:[0,0,.09], armFo:[-.10,0,0]},
+    b:{foot:[ .82,0,0], armUp:[0,0,.09], armFo:[-.10,0,0]}},
+
+  "腹筋クランチ":{prop:"none", ground:false, speed:.95, cam:{y:.50,h:1.18,d:3.00},
+    rig:{mat:true},
+    a:{root:SUPINE_FLOOR, spine:[0,0,0],    head:[0,0,0],    thigh:[-1.60,0,.16], shin:[1.60,0,0],
+       armUp:[0,TWIST,2.15], armFo:[-2.55,0,0]},
+    b:{root:SUPINE_FLOOR, spine:[.80,0,0], head:[.30,0,0], thigh:[-1.60,0,.16], shin:[1.60,0,0],
+       armUp:[0,TWIST,2.15], armFo:[-2.55,0,0]}},
+
+  "サイドベンド":{prop:"dumbbell", speed:.85, cam:CAM_STAND,
+    a:{spine:[0,0,.05], head:[0,0,-.05], armUp:[0,0,.08], armFo:[-.10,0,0]},
+    b:{spine:[0,0,.48], head:[0,0,-.18], armUp:[0,0,.08], armFo:[-.10,0,0]}},
+};
+
+const _ZERO=[0,0,0], _ROOT0=[0,0,0,0,0,0];
+const _v = new THREE.Vector3();
+// [ボーン番号, x, y, z] — つま先とかかと
+const TOE_ANCHORS  = [[12, .103,.016,.078],[15,-.103,.016,.078]];
+const FOOT_ANCHORS = TOE_ANCHORS.concat([[12, .103,.030,-.048],[15,-.103,.030,-.048]]);
+
+let motionKey=null, motionOn=true, motionPhase=0, motionBoost=0;
+const camNow={y:CAM_STAND.y, h:CAM_STAND.h, d:CAM_STAND.d};
+let camGoal=CAM_STAND;
+
+function applyMotionPose(m, t){
+  const A=m.a, B=m.b;
+  const g=(o,k)=>o[k]||_ZERO;
+  const L=(k,i)=>{ const a=g(A,k)[i]; return a+(g(B,k)[i]-a)*t; };
+  const ra=A.root||_ROOT0, rb=B.root||_ROOT0;
+  const R=i=>ra[i]+(rb[i]-ra[i])*t;
+  poseRoot.rotation.set(R(0),R(1),R(2));
+  poseRoot.position.set(R(3),0,R(5));
+  const set=(bi,k,mir)=>{
+    const x=L(k,0), y=L(k,1), z=L(k,2);
+    _e.set(x, mir?-y:y, mir?-z:z, "XZY");
+    boneQ[bi].setFromEuler(_e);
+  };
+  boneQ[0].set(0,0,0,1);
+  set(1,"hip",false); set(2,"spine",false); set(3,"head",false);
+  set(4,"armUp",false); set(5,"armFo",false); set(6,"hand",false);
+  set(7,"armUp",true);  set(8,"armFo",true);  set(9,"hand",true);
+  set(10,"thigh",false);set(11,"shin",false); set(12,"foot",false);
+  set(13,"thigh",true); set(14,"shin",true);  set(15,"foot",true);
+  poseActive=true;
+  updateBoneMatrices();
+
+  // ---- ルートの高さ合わせ
+  poseRoot.updateMatrix();
+  if(m.hang!=null){
+    // 懸垂: 手がバーの高さに固定される。腕を曲げると体が上がる
+    _v.set(HAND_L[0],HAND_L[1],HAND_L[2]).applyMatrix4(boneMat[B_ARM_L+2]).applyMatrix4(poseRoot.matrix);
+    const hL=_v.y;
+    _v.set(HAND_R[0],HAND_R[1],HAND_R[2]).applyMatrix4(boneMat[B_ARM_R+2]).applyMatrix4(poseRoot.matrix);
+    poseRoot.position.y = m.hang - (hL+_v.y)/2;
+  }else if(m.ground!==false){
+    // 接地補正: 足の最下点が床(または台の上面)に来るようにルートを上下させる
+    const list = m.groundToe ? TOE_ANCHORS : FOOT_ANCHORS;
+    let minY=Infinity;
+    for(let k=0;k<list.length;k++){
+      const A2=list[k];
+      _v.set(A2[1],A2[2],A2[3]).applyMatrix4(boneMat[A2[0]]).applyMatrix4(poseRoot.matrix);
+      if(_v.y<minY) minY=_v.y;
+    }
+    poseRoot.position.y = R(4) + (m.groundY||0) - minY;
+  }else{
+    poseRoot.position.y = R(4);
+  }
+  poseRoot.updateMatrix();
+}
+
+function setMotion(name){
+  const m = MOTIONS[name];
+  motionKey = (m && motionOn) ? name : null;
+  if(!motionKey){ setRig("none",null); camGoal=CAM_STAND; resetPose(); applyPose(); return; }
+  setRig(m.prop, m.rig);
+  camGoal = m.cam || CAM_STAND;
+  motionPhase = 0;
+  applyMotionPose(m, 0);
+  applyPose();
+}
+
+/* ==========================================================
+   7. UI
+   ========================================================== */
+/* ==========================================================
+   8. UI
+   ========================================================== */
+document.querySelectorAll(".tabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".pane").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    document.getElementById("pane-"+b.dataset.pane).classList.add("active");
+    if(b.dataset.pane==="parts" && !state.anatomyMode) setMode(true);
+    if(b.dataset.pane==="avatar" && state.anatomyMode) setMode(false);
+  });
+});
+
+function renderHud(){
+  document.getElementById("lvNum").textContent=state.level;
+  const need=xpNeed(state.level);
+  document.getElementById("xpFill").style.width=Math.min(100,state.xp/need*100)+"%";
+  document.getElementById("xpTxt").textContent=`${state.xp} / ${need} XP`;
+  document.getElementById("goldNum").textContent=state.gold.toLocaleString();
+}
+
+const exSel=document.getElementById("exSel");
+EXERCISES.forEach(e=>{ const o=document.createElement("option"); o.value=o.textContent=e.name; exSel.appendChild(o); });
+function renderContrib(){
+  const ex=EXERCISES.find(e=>e.name===exSel.value);
+  const box=document.getElementById("contrib"); box.innerHTML="";
+  Object.entries(ex.c).sort((a,b)=>b[1]-a[1]).forEach(([p,r])=>{
+    const c=document.createElement("span"); c.className="chip";
+    c.textContent=`${PARTS[p].label} ${Math.round(r*100)}%`;
+    box.appendChild(c);
+  });
+  updateRewardHint();
+}
+function readInputs(){
+  return {
+    kg:+document.getElementById("inKg").value||0,
+    set:Math.max(1,+document.getElementById("inSet").value||1),
+    rep:Math.max(1,+document.getElementById("inRep").value||1),
+  };
+}
+function updateRewardHint(){
+  const {kg,set,rep}=readInputs();
+  const v=logVolume({name:exSel.value,kg,set,rep});
+  document.getElementById("rewardHint").textContent=
+    `獲得予定: +${xpFromVolume(v)} XP / +${goldFromVolume(v)} G`;
+}
+exSel.addEventListener("change",()=>{ renderContrib(); setMotion(exSel.value); });
+["inKg","inSet","inRep"].forEach(id=>document.getElementById(id).addEventListener("input",updateRewardHint));
+
+const flashLabel=document.getElementById("flashLabel");
+function banner(text){
+  flashLabel.textContent=text; flashLabel.style.opacity=1;
+  clearTimeout(flashLabel._t);
+  flashLabel._t=setTimeout(()=>flashLabel.style.opacity=0,1700);
+}
+function firePartFlash(parts,text){
+  for(const p in parts){
+    const pi=PART_IDS.indexOf(p);
+    if(pi>=0) flashArr[pi]=Math.min(1.2,.5+parts[p]);
+  }
+  banner(text);
+}
+
+document.getElementById("addLog").addEventListener("click",()=>{
+  const {kg,set,rep}=readInputs();
+  const log={id:Date.now(),name:exSel.value,kg,set,rep};
+  state.logs.unshift(log);
+
+  const v=logVolume(log);
+  const xp=xpFromVolume(v), gold=goldFromVolume(v);
+  state.gold+=gold;
+
+  Audio2.sfxRecord(); Audio2.duckUp();
+  recomputeFromLogs(); renderLogs();
+
+  const ex=EXERCISES.find(e=>e.name===exSel.value);
+  firePartFlash(ex.c, `${Object.keys(ex.c).map(p=>PARTS[p].label).join(" / ")}  +${xp}XP +${gold}G`);
+
+  const prevLv=state.level;
+  gainXp(xp);
+  if(state.level===prevLv){
+    setTimeout(()=>say(v>=3000 ? "heavy" : "record", null, {interrupt:true}), 420);
+  }
+  renderShop();
+  motionBoost = 1.4;
+});
+document.getElementById("clearLogs").addEventListener("click",()=>{
+  state.logs=[]; recomputeFromLogs(); renderLogs(); Audio2.sfxClick();
+});
+function renderLogs(){
+  const box=document.getElementById("logList");
+  if(!state.logs.length){
+    box.innerHTML='<div class="empty">まだ記録がありません。<br>記録するとXPとゴールドが手に入ります。</div>';
+    return;
+  }
+  box.innerHTML="";
+  state.logs.slice(0,20).forEach(l=>{
+    const d=document.createElement("div"); d.className="logItem";
+    d.innerHTML=`<span class="nm">${l.name}</span><span class="num">${l.kg}kg × ${l.set}set × ${l.rep}rep</span>`;
+    const del=document.createElement("button"); del.textContent="✕";
+    del.addEventListener("click",()=>{
+      state.logs=state.logs.filter(x=>x.id!==l.id);
+      recomputeFromLogs(); renderLogs(); Audio2.sfxClick();
+    });
+    d.appendChild(del); box.appendChild(d);
+  });
+}
+
+function renderStatus(){
+  const totalVol=state.logs.reduce((s,l)=>s+logVolume(l),0);
+  const avg=PART_IDS.reduce((s,p)=>s+state.target[p],0)/PART_IDS.length;
+  let top="—", tv=0;
+  PART_IDS.forEach(p=>{ if(state.target[p]>tv){ tv=state.target[p]; top=PARTS[p].label; }});
+  document.getElementById("stLogs").textContent=state.logs.length;
+  document.getElementById("stVol").textContent=Math.round(totalVol).toLocaleString()+" kg";
+  document.getElementById("stGrowth").textContent=Math.round(avg*100)+" %";
+  document.getElementById("stTop").textContent= tv>0 ? `${top} ${Math.round(tv*100)}%` : "—";
+  document.getElementById("stLv").textContent=state.level;
+  document.getElementById("stXp").textContent=state.totalXp.toLocaleString();
+  document.getElementById("stGold").textContent=state.gold.toLocaleString();
+  const paid=[...state.owned].filter(id=>{ const f=findItem(id); return f && !f.item.free; }).length;
+  document.getElementById("stItems").textContent=paid;
+}
+
+function renderCustom(){
+  const host=document.getElementById("customHost"); host.innerHTML="";
+  const colorSection=(title,list,key)=>{
+    const g=document.createElement("div"); g.className="grp"; g.textContent=title; host.appendChild(g);
+    const wrap=document.createElement("div"); wrap.className="swatches";
+    list.forEach(c=>{
+      const b=document.createElement("button");
+      b.className="sw"+(state[key]===c?" sel":""); b.style.background=c;
+      b.addEventListener("click",()=>{ state[key]=c; Audio2.sfxClick(); renderCustom(); deform(); rebuildAccessories(); });
+      wrap.appendChild(b);
+    });
+    host.appendChild(wrap);
+  };
+  CAT_IDS.forEach(cat=>{
+    const def=CATALOG[cat];
+    const g=document.createElement("div"); g.className="grp"; g.textContent=def.label; host.appendChild(g);
+    const wrap=document.createElement("div"); wrap.className="opts";
+    def.items.forEach(it=>{
+      const owned=state.owned.has(it.id);
+      const b=document.createElement("button");
+      b.className="opt"+(state.equip[cat]===it.id?" sel":"")+(owned?"":" locked");
+      b.textContent= owned ? it.name : `${it.name} 🔒`;
+      if(owned) b.addEventListener("click",()=>{
+        state.equip[cat]=it.id; Audio2.sfxClick(); rebuildAccessories(); deform(); renderCustom();
+      });
+      else b.title="ショップで購入できます";
+      wrap.appendChild(b);
+    });
+    host.appendChild(wrap);
+    if(cat==="hair"){ colorSection("髪色",HAIR_COLORS,"hairColor");
+                      colorSection("毛先の色",HAIRTIP_COLORS,"hairTip"); }
+    if(cat==="eyes") colorSection("瞳の色",EYE_COLORS,"eyeColor");
+    if(cat==="mouth") colorSection("肌の色",SKIN_COLORS,"skin");
+    if(cat==="top") colorSection("トップスの色",CLOTH_COLORS,"topColor");
+    if(cat==="bottom") colorSection("ボトムスの色",CLOTH_COLORS,"bottomColor");
+    if(cat==="shoes") colorSection("シューズの色",CLOTH_COLORS,"shoeColor");
+  });
+}
+
+function renderShop(){
+  const host=document.getElementById("shopHost"); host.innerHTML="";
+  CAT_IDS.forEach(cat=>{
+    const paid=CATALOG[cat].items.filter(i=>!i.free);
+    if(!paid.length) return;
+    const g=document.createElement("div"); g.className="grp"; g.textContent=CATALOG[cat].label; host.appendChild(g);
+    paid.forEach(it=>{
+      const row=document.createElement("div"); row.className="shopItem";
+      const owned=state.owned.has(it.id), lvOk=!it.lv||state.level>=it.lv;
+      const info=document.createElement("div"); info.className="info";
+      info.innerHTML=`<div class="nm">${it.name}</div>`+
+        (it.lv ? `<div class="ds ${lvOk?"":"lvreq"}">${lvOk?"解放済み":"Lv."+it.lv+" で解放"}</div>`
+               : `<div class="ds">いつでも購入可</div>`);
+      row.appendChild(info);
+      if(owned){
+        const s=document.createElement("span"); s.className="owned"; s.textContent="購入済み"; row.appendChild(s);
+      }else{
+        const b=document.createElement("button"); b.className="buy"; b.textContent=it.price+" G";
+        b.disabled = !lvOk || state.gold<it.price;
+        b.addEventListener("click",()=>{
+          if(state.gold<it.price||!lvOk){ Audio2.sfxDeny(); return; }
+          state.gold-=it.price; state.owned.add(it.id); state.equip[cat]=it.id;
+          Audio2.sfxBuy(); say("buy",null,{interrupt:true});
+          renderHud(); renderShop(); renderCustom(); renderStatus();
+          rebuildAccessories(); deform();
+          banner(it.name+" を購入・装備しました");
+        });
+        row.appendChild(b);
+      }
+      host.appendChild(row);
+    });
+  });
+}
+
+const sliderRefs={};
+(function buildSliders(){
+  const host=document.getElementById("sliders");
+  let lastGrp=null;
+  Object.entries(PARTS).forEach(([p,def])=>{
+    if(def.grp!==lastGrp){
+      const g=document.createElement("div"); g.className="grp"; g.textContent=def.grp;
+      host.appendChild(g); lastGrp=def.grp;
+    }
+    const row=document.createElement("div"); row.className="sl";
+    const lab=document.createElement("label"); lab.htmlFor="sl-"+p; lab.textContent=def.label;
+    lab.addEventListener("click",e=>{ e.preventDefault(); firePartFlash({[p]:.8}, def.label+" の頂点重みマップ"); });
+    const r=document.createElement("input"); r.type="range"; r.min=0; r.max=100; r.value=0; r.id="sl-"+p;
+    const v=document.createElement("span"); v.className="v"; v.textContent="0%";
+    r.addEventListener("input",()=>{ state.target[p]=r.value/100; v.textContent=r.value+"%"; renderStatus(); });
+    row.append(lab,r,v); host.appendChild(row);
+    sliderRefs[p]={r,v};
+  });
+})();
+function syncSliders(){
+  PART_IDS.forEach(p=>{
+    const pct=Math.round(state.target[p]*100);
+    sliderRefs[p].r.value=pct; sliderRefs[p].v.textContent=pct+"%";
+  });
+}
+
+document.getElementById("inHeight").addEventListener("input",e=>{
+  state.heightCm=Math.min(210,Math.max(140,+e.target.value||158));
+});
+document.getElementById("inWeight").addEventListener("input",e=>{
+  state.weightKg=Math.min(130,Math.max(35,+e.target.value||50));
+  recomputeFromLogs(); updateRewardHint();
+});
+
+const modeBtn=document.getElementById("modeBtn");
+function setMode(anatomy){
+  state.anatomyMode=anatomy;
+  modeBtn.textContent= anatomy ? "表示: 解剖" : "表示: アバター";
+  bodyMesh.visible=!anatomy;
+  wireMesh.visible=anatomy;
+  accGroup.visible=!anatomy;
+  propGroup.visible=!anatomy; rigGroup.visible=!anatomy;
+  deform();
+}
+modeBtn.addEventListener("click",()=>{ setMode(!state.anatomyMode); Audio2.sfxClick(); });
+
+const poseBtn=document.getElementById("poseBtn");
+poseBtn.addEventListener("click",()=>{
+  motionOn=!motionOn;
+  poseBtn.textContent = motionOn ? "動作: ON" : "動作: OFF";
+  Audio2.sfxClick();
+  setMotion(exSel.value);
+});
+
+/* --- 設定タブ --- */
+function bindToggle(id, initial, onChange){
+  const el=document.getElementById(id);
+  el.classList.toggle("on", initial);
+  el.addEventListener("click",()=>{
+    const on=!el.classList.contains("on");
+    el.classList.toggle("on",on); onChange(on); Audio2.sfxClick();
+  });
+}
+function bindSlider(id, vid, fmt, onChange){
+  const r=document.getElementById(id), v=document.getElementById(vid);
+  const apply=()=>{ v.textContent=fmt(+r.value); onChange(+r.value); };
+  r.addEventListener("input",apply); apply();
+}
+bindToggle("tgBgm", false, on=>Audio2.setBgm(on));
+bindSlider("volBgm","volBgmV", n=>n, n=>Audio2.setBgmVolume(n/100));
+bindSlider("volSfx","volSfxV", n=>n, n=>Audio2.setSfxVolume(n/100));
+bindToggle("tgVoice", true, on=>{ Voice.enabled=on; });
+bindSlider("volVoice","volVoiceV", n=>n, n=>{ Voice.volume=n/100; });
+bindSlider("voiceRate","voiceRateV", n=>(n/100).toFixed(2), n=>{ Voice.rate=n/100; });
+bindSlider("voicePitch","voicePitchV", n=>(n/100).toFixed(2), n=>{ Voice.pitch=n/100; });
+bindSlider("bulkSl","bulkV", n=>(n/10).toFixed(1)+"x", n=>{ state.bulk=n/10; deform(); });
+
+document.getElementById("voiceStyle").addEventListener("change",e=>{ voiceStyle=e.target.value; });
+document.getElementById("voiceTest").addEventListener("click",()=>{ say("test",null,{interrupt:true}); });
+
+function populateVoices(){
+  const sel=document.getElementById("voicePick");
+  const list=Voice.loadVoices();
+  sel.innerHTML="";
+  if(!Voice.supported || !list.length){
+    const o=document.createElement("option"); o.textContent="この端末では利用できません"; sel.appendChild(o);
+    sel.disabled=true; return;
+  }
+  const auto=document.createElement("option"); auto.value="-1"; auto.textContent="自動(端末の既定)";
+  sel.appendChild(auto);
+  list.forEach((v,i)=>{
+    const o=document.createElement("option"); o.value=i; o.textContent=`${v.name} (${v.lang})`;
+    sel.appendChild(o);
+  });
+  sel.disabled=false;
+  sel.onchange=()=>{
+    const i=+sel.value;
+    Voice.setVoice(i<0 ? null : Voice.list[i]);
+  };
+}
+if(window.speechSynthesis){
+  populateVoices();
+  window.speechSynthesis.onvoiceschanged = populateVoices;
+}
+
+/* ==========================================================
+   9. 操作とループ
+   ========================================================== */
+let dragging=false, px=0, py=0, rotY=.32, rotX=0, idle=0;
+let zoomK=1;   // 1 = 既定の距離。小さいほど寄る
+const setZoom=v=>{ zoomK=Math.min(2.2, Math.max(.42, v)); idle=0; };
+
+stage.addEventListener("pointerdown",e=>{dragging=true; px=e.clientX; py=e.clientY; idle=0;});
+
+/* ホイール / トラックパッドでズーム */
+stage.addEventListener("wheel",e=>{
+  e.preventDefault();
+  setZoom(zoomK * Math.pow(1.0016, e.deltaY));
+},{passive:false});
+
+/* 2本指ピンチでズーム(回転のドラッグとは排他) */
+let pinchDist=0;
+const touchDist=t=>Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
+stage.addEventListener("touchstart",e=>{
+  if(e.touches.length===2){ dragging=false; pinchDist=touchDist(e.touches); }
+},{passive:false});
+stage.addEventListener("touchmove",e=>{
+  if(e.touches.length!==2) return;
+  e.preventDefault();
+  const d=touchDist(e.touches);
+  if(pinchDist>0 && d>0) setZoom(zoomK * (pinchDist/d));
+  pinchDist=d;
+},{passive:false});
+stage.addEventListener("touchend",e=>{ if(e.touches.length<2) pinchDist=0; });
+/* ダブルタップ / ダブルクリックで等倍に戻す */
+stage.addEventListener("dblclick",()=>{ setZoom(1); Audio2.sfxClick(); });
+addEventListener("pointerup",()=>dragging=false);
+addEventListener("pointermove",e=>{
+  if(!dragging) return;
+  rotY+=(e.clientX-px)*.008;
+  rotX=Math.max(-.4,Math.min(.4,rotX+(e.clientY-py)*.004));
+  px=e.clientX; py=e.clientY; idle=0;
+});
+
+function resize(){
+  const w=stage.clientWidth, h=stage.clientHeight;
+  renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+addEventListener("resize",resize); resize();
+
+const clock=new THREE.Clock();
+(function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(.05,clock.getDelta());
+  let dirty=false;
+  PART_IDS.forEach((p,pi)=>{
+    const prev=curArr[pi];
+    curArr[pi]+=(state.target[p]-curArr[pi])*Math.min(1,dt*4.5);
+    if(Math.abs(curArr[pi]-prev)>1e-5) dirty=true;
+    if(flashArr[pi]>0){ flashArr[pi]=Math.max(0,flashArr[pi]-dt*1.1); dirty=true; }
+  });
+  if(dirty) deform();
+
+  if(motionKey){
+    const m=MOTIONS[motionKey];
+    if(motionBoost>0) motionBoost=Math.max(0, motionBoost-dt*1.1);
+    motionPhase += dt*1.9*(m.speed||1)*(1+motionBoost);
+    applyMotionPose(m, (1-Math.cos(motionPhase))/2);
+    applyPose();
+  }
+
+  const k=Math.min(1, dt*3.2);
+  camNow.y += (camGoal.y-camNow.y)*k;
+  camNow.h += (camGoal.h-camNow.h)*k;
+  camNow.d += (camGoal.d-camNow.d)*k;
+  // 注視点を固定したまま、視線に沿ってカメラを前後させる
+  camera.position.set(0, camNow.y + (camNow.h-camNow.y)*zoomK, camNow.d*zoomK);
+  camera.lookAt(0, camNow.y, 0);
+
+  const hs=state.heightCm/158, ws=1+(state.weightKg-50)/50*.14;
+  avatar.scale.set(ws,hs,ws);
+
+  idle+=dt;
+  if(!dragging && idle>2.5) rotY+=dt*.22;
+  avatar.rotation.y=rotY; avatar.rotation.x=rotX*.5;
+  renderer.render(scene,camera);
+})();
+
+rebuildAccessories();
+resetPose();
+setMode(false);
+renderContrib(); renderLogs(); renderHud(); renderCustom(); renderShop(); renderStatus();
+setMotion(exSel.value);
+</script>
+</body>
+</html>
