@@ -11,7 +11,12 @@
     --text: rgba(88,68,104,.82);
     --accent: #c98fd0;
   }
-  *{box-sizing:border-box}
+  *{
+    box-sizing:border-box;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+  }
   html,body{width:100%;height:100%;margin:0;overflow:hidden}
   body{
     font-family: ui-sans-serif,system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
@@ -138,6 +143,30 @@
   </div>
   <div id="readout">—</div>
 </div>
+
+<script>
+  /* ブラウザ上でできる範囲の、カジュアルなソース閲覧・保存操作の抑止 */
+  (() => {
+    const cancel = event => event.preventDefault();
+
+    document.addEventListener('contextmenu', cancel, {capture: true});
+    document.addEventListener('dragstart', cancel, {capture: true});
+    document.addEventListener('selectstart', cancel, {capture: true});
+
+    document.addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+      const developerShortcut =
+        event.key === 'F12' ||
+        ((event.ctrlKey || event.metaKey) && event.shiftKey && ['i', 'j', 'c'].includes(key)) ||
+        ((event.ctrlKey || event.metaKey) && key === 'u');
+
+      if (developerShortcut) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, {capture: true});
+  })();
+</script>
 
 
 <script id="vs" type="x-shader/x-vertex">
