@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>汐見酒造 三つの酒</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500&display=swap" rel="stylesheet">
+<style>
+@property --bg1 { syntax:'<color>'; inherits:true; initial-value:#2a3a96; }
+@property --bg2 { syntax:'<color>'; inherits:true; initial-value:#0e1446; }
+@property --ink { syntax:'<color>'; inherits:true; initial-value:#eef0fa; }
+@property --accent { syntax:'<color>'; inherits:true; initial-value:#a9bcff; }
+
+:root{
+  --bg1:#2a3a96; --bg2:#0e1446; --ink:#eef0fa; --accent:#a9bcff;
+  --mincho:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --gothic:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  transition:--bg1 .9s ease, --bg2 .9s ease, --ink .9s ease, --accent .9s ease;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  height:100%;margin:0;overflow:hidden;
+  background:var(--bg2);color:var(--ink);
+  font-family:var(--gothic);
+}
+.glow{
+  position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 60% at 50% 52%, var(--bg1) 0%, transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 120%, var(--bg1) 0%, transparent 60%);
+}
+canvas#stage{position:fixed;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;outline:none}
+canvas#stage.drag{cursor:grabbing}
+
+header{
+  position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);
+  display:flex;justify-content:space-between;align-items:center;
+  padding:22px clamp(18px,4vw,48px);z-index:2;
+}
+.brand{font-family:var(--mincho);font-weight:800;font-size:1.15rem;letter-spacing:.3em}
+nav{display:flex;gap:6px}
+nav button{
+  font-family:var(--mincho);font-weight:800;font-size:1.05rem;
+  width:44px;height:44px;border-radius:50%;
+  border:1px solid transparent;background:transparent;color:var(--ink);
+  opacity:.55;cursor:pointer;transition:opacity .3s,border-color .3s;
+}
+nav button:hover{opacity:.9}
+nav button[aria-current="true"]{opacity:1;border-color:var(--ink)}
+nav button:focus-visible,.cta:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+.name{
+  position:fixed;z-index:1;left:clamp(18px,9vw,140px);top:50%;transform:translateY(-50%);
+  display:flex;gap:18px;align-items:flex-start;pointer-events:none;
+}
+.kanji{
+  font-family:var(--mincho);font-weight:800;
+  font-size:clamp(6rem,30vh,15rem);line-height:1;margin:0;
+}
+.yomi{writing-mode:vertical-rl;font-family:var(--mincho);font-weight:600;font-size:1rem;letter-spacing:.5em;opacity:.8;margin-top:.4em}
+
+.info{
+  position:fixed;z-index:1;right:clamp(18px,7vw,120px);top:50%;transform:translateY(-50%);
+  width:min(300px,30vw);
+}
+.type{font-family:var(--mincho);font-weight:800;font-size:1.5rem;margin:0 0 14px}
+.desc{font-size:.92rem;line-height:1.9;margin:0 0 22px;opacity:.88}
+dl{margin:0 0 26px;display:grid;grid-template-columns:auto 1fr;gap:10px 20px;font-size:.88rem}
+dt{opacity:.65}
+dd{margin:0;font-weight:500}
+.cta{
+  display:inline-block;font:inherit;font-weight:500;font-size:.9rem;
+  padding:12px 26px;border-radius:999px;border:1px solid var(--ink);
+  background:var(--ink);color:var(--bg2);cursor:pointer;text-decoration:none;
+  transition:background .3s,color .3s;
+}
+.cta:hover{background:transparent;color:var(--ink)}
+
+.fade{transition:opacity .35s ease}
+.fade.out{opacity:0}
+
+footer{
+  position:fixed;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);
+  padding:20px clamp(18px,4vw,48px);display:flex;justify-content:space-between;
+  font-size:.8rem;opacity:.7;z-index:1;pointer-events:none;
+}
+.count{font-family:var(--mincho);font-weight:600;font-size:.95rem}
+
+.nogl{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:24px}
+
+@media (max-width:760px){
+  .name{top:84px;transform:none;left:18px;gap:8px}
+  .kanji{font-size:clamp(4.5rem,16vh,7rem)}
+  .yomi{font-size:.8rem}
+  .info{right:18px;left:18px;top:auto;bottom:56px;transform:none;width:auto}
+  .desc{display:none}
+  .type{font-size:1.2rem;margin-bottom:10px}
+  dl{grid-template-columns:auto 1fr auto 1fr;font-size:.78rem;gap:6px 12px;margin-bottom:14px}
+  .cta{padding:10px 22px}
+  footer .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  :root{transition:none}
+  .fade{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<canvas id="stage" tabindex="0" aria-label="日本酒の瓶の3D表示。ドラッグで回転、上下スクロールで銘柄を切り替え"></canvas>
+
+<header>
+  <div class="brand">汐見酒造</div>
+  <nav aria-label="銘柄">
+    <button data-i="0" aria-label="澄 純米大吟醸">澄</button>
+    <button data-i="1" aria-label="燗 生酛純米">燗</button>
+    <button data-i="2" aria-label="霞 活性にごり">霞</button>
+  </nav>
+</header>
+
+<div class="name fade" id="name">
+  <h1 class="kanji" id="kanji">澄</h1>
+  <div class="yomi" id="yomi">すみ</div>
+</div>
+
+<section class="info fade" id="info" aria-live="polite">
+  <h2 class="type" id="type"></h2>
+  <p class="desc" id="desc"></p>
+  <dl>
+    <dt>精米歩合</dt><dd id="polish"></dd>
+    <dt>日本酒度</dt><dd id="smv"></dd>
+    <dt>飲み頃</dt><dd id="temp"></dd>
+    <dt>容量</dt><dd>720ml</dd>
+  </dl>
+  <a class="cta" href="#" onclick="return false">この酒を選ぶ</a>
+</section>
+
+<footer>
+  <span class="hint">ドラッグで瓶を回し、スクロールで次の一本へ</span>
+  <span class="count" id="count">1 / 3</span>
+</footer>
+
+<div class="nogl" id="nogl"><p>この端末では3D表示を読み込めませんでした。別のブラウザで開き直してください。</p></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(async function(){
+const SAKES=[
+ {kanji:'澄',yomi:'すみ',type:'純米大吟醸',polish:'40%',smv:'+3',temp:'冷や 8〜10℃',
+  desc:'山田錦を四割まで磨き、低温で長く醸した一本。梨のような香りと、水のように引いていく後口。',
+  bg1:'#2a3a96',bg2:'#0e1446',ink:'#eef0fa',accent:'#a9bcff',
+  glass:0x5d78e0,glassOp:.42,glassRough:.06,liquid:0xdbe4ff,liquidOp:.55,cap:0x1a2160,paper:'#f3f1ea',labelInk:'#1a2160',seal:'#b8322a'},
+ {kanji:'燗',yomi:'かん',type:'生酛純米',polish:'65%',smv:'+6',temp:'ぬる燗 40℃',
+  desc:'蔵付きの乳酸菌でゆっくり育てた生酛。温めるほど旨味がほどけ、米の甘さが顔を出す。',
+  bg1:'#a3432a',bg2:'#3a120a',ink:'#fbeee6',accent:'#ffb08a',
+  glass:0x7a4416,glassOp:.6,glassRough:.08,liquid:0xe0a850,liquidOp:.8,cap:0x2a0f08,paper:'#efe2c8',labelInk:'#4a140a',seal:'#1f1a17'},
+ {kanji:'霞',yomi:'かすみ',type:'活性にごり',polish:'60%',smv:'−8',temp:'よく冷やして 5℃',
+  desc:'搾ったままの澱を残した、ほのかに発泡するにごり酒。開けるときは少しずつ、ゆっくりと。',
+  bg1:'#f6edef',bg2:'#c4abb3',ink:'#2d1f24',accent:'#8a4a5c',
+  glass:0xf4f2f2,glassOp:.55,glassRough:.45,liquid:0xf7f4ee,liquidOp:.95,cap:0x8a4a5c,paper:'#ffffff',labelInk:'#2d1f24',seal:'#8a4a5c'}
+];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- renderer ---------- */
+const canvas=document.getElementById('stage');
+let renderer;
+try{
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+}catch(e){document.getElementById('nogl').style.display='grid';return;}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(30,1,.1,100);
+
+/* studio-like environment for glass reflections */
+(function(){
+  const c=document.createElement('canvas');c.width=1024;c.height=512;
+  const g=c.getContext('2d');
+  const grd=g.createLinearGradient(0,0,0,512);
+  grd.addColorStop(0,'#bfc4d0');grd.addColorStop(.5,'#5a5e68');grd.addColorStop(1,'#1a1b20');
+  g.fillStyle=grd;g.fillRect(0,0,1024,512);
+  g.fillStyle='#ffffff';
+  g.fillRect(180,120,70,240);   // softbox left
+  g.fillRect(700,90,40,280);    // strip right
+  g.fillRect(420,20,260,40);    // top light
+  const tex=new THREE.CanvasTexture(c);
+  tex.mapping=THREE.EquirectangularReflectionMapping;
+  tex.encoding=THREE.sRGBEncoding;
+  const pm=new THREE.PMREMGenerator(renderer);
+  scene.environment=pm.fromEquirectangular(tex).texture;
+  tex.dispose();pm.dispose();
+})();
+scene.add(new THREE.HemisphereLight(0xffffff,0x444444,.6));
+const key=new THREE.DirectionalLight(0xffffff,1.2);key.position.set(3,5,4);scene.add(key);
+const rim=new THREE.DirectionalLight(0xffffff,.9);rim.position.set(-4,2,-3);scene.add(rim);
+
+/* ---------- label textures (wait for webfont) ---------- */
+try{await Promise.race([
+  Promise.all([document.fonts.load('800 100px "Shippori Mincho B1"'),document.fonts.load('400 20px "Zen Kaku Gothic New"')]),
+  new Promise(r=>setTimeout(r,2500))]);}catch(e){}
+
+function vtext(g,str,x,y,size,gap){
+  for(const ch of str){g.fillText(ch,x,y);y+=size*(gap||1.05);}
+}
+function makeLabel(s){
+  const W=700,H=1024,c=document.createElement('canvas');c.width=W;c.height=H;
+  const g=c.getContext('2d');
+  g.fillStyle=s.paper;g.fillRect(0,0,W,H);
+  // washi fibres
+  for(let i=0;i<900;i++){
+    g.fillStyle=`rgba(0,0,0,${Math.random()*.035})`;
+    g.fillRect(Math.random()*W,Math.random()*H,Math.random()*18+2,1);
+  }
+  g.strokeStyle=s.labelInk;g.lineWidth=3;g.strokeRect(34,34,W-68,H-68);
+  g.lineWidth=1;g.strokeRect(46,46,W-92,H-92);
+  g.fillStyle=s.labelInk;g.textAlign='center';g.textBaseline='top';
+  g.font='800 400px "Shippori Mincho B1", serif';
+  g.fillText(s.kanji,W/2-30,250);
+  g.font='600 44px "Shippori Mincho B1", serif';
+  vtext(g,s.type,W-110,110,44,1.12);
+  g.font='400 30px "Zen Kaku Gothic New", sans-serif';
+  vtext(g,'汐見酒造謹醸',110,560,30,1.2);
+  // seal
+  g.fillStyle=s.seal;g.fillRect(84,140,64,64);
+  g.fillStyle=s.paper;g.font='800 44px "Shippori Mincho B1", serif';g.fillText('汐',116,148);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;
+  return t;
+}
+
+/* ---------- bottle (四合瓶) ---------- */
+const P=(a)=>a.map(([x,y])=>new THREE.Vector2(x,y));
+const outer=P([[0,0],[.34,0],[.38,.05],[.38,1.68],[.365,1.82],[.29,2.02],[.17,2.24],[.125,2.42],[.12,2.72],[.135,2.76],[.135,2.82],[0,2.82]]);
+const inner=P([[0,.07],[.345,.07],[.355,.1],[.355,1.66],[.33,1.82],[0,1.84]]);
+const bottle=new THREE.Group();
+const body=new THREE.Group();bottle.add(body);
+const glassMat=new THREE.MeshPhysicalMaterial({metalness:0,roughness:.06,clearcoat:1,clearcoatRoughness:.05,transparent:true,envMapIntensity:1.6,depthWrite:false});
+const liquidMat=new THREE.MeshStandardMaterial({roughness:.25,transparent:true,envMapIntensity:.6});
+const capMat=new THREE.MeshStandardMaterial({metalness:.6,roughness:.35});
+const labelMat=new THREE.MeshStandardMaterial({roughness:.85,metalness:0});
+const liquid=new THREE.Mesh(new THREE.LatheGeometry(inner,72),liquidMat);liquid.renderOrder=1;
+const glass=new THREE.Mesh(new THREE.LatheGeometry(outer,96),glassMat);glass.renderOrder=2;
+const label=new THREE.Mesh(new THREE.CylinderGeometry(.386,.386,1.05,72,1,true,-.95,1.9),labelMat);
+label.position.y=.92;label.renderOrder=3;
+const cap=new THREE.Mesh(new THREE.CylinderGeometry(.142,.142,.26,48),capMat);cap.position.y=2.8;
+body.add(liquid,glass,label,cap);
+body.position.y=-1.41;
+scene.add(bottle);
+
+/* soft floor shadow */
+const sh=document.createElement('canvas');sh.width=sh.height=256;
+const sg=sh.getContext('2d');const rg=sg.createRadialGradient(128,128,0,128,128,128);
+rg.addColorStop(0,'rgba(0,0,0,.45)');rg.addColorStop(1,'rgba(0,0,0,0)');
+sg.fillStyle=rg;sg.fillRect(0,0,256,256);
+const shadow=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sh),transparent:true,depthWrite:false}));
+shadow.rotation.x=-Math.PI/2;shadow.position.y=-1.85;scene.add(shadow);
+
+const labels=SAKES.map(makeLabel);
+function applyBottle(i){
+  const s=SAKES[i];
+  glassMat.color.setHex(s.glass);glassMat.opacity=s.glassOp;glassMat.roughness=s.glassRough;
+  liquidMat.color.setHex(s.liquid);liquidMat.opacity=s.liquidOp;
+  capMat.color.setHex(s.cap);
+  labelMat.map=labels[i];labelMat.needsUpdate=true;
+}
+
+/* ---------- UI ---------- */
+const $=id=>document.getElementById(id);
+const navBtns=[...document.querySelectorAll('nav button')];
+function applyUI(i,instant){
+  const s=SAKES[i],r=document.documentElement.style;
+  r.setProperty('--bg1',s.bg1);r.setProperty('--bg2',s.bg2);r.setProperty('--ink',s.ink);r.setProperty('--accent',s.accent);
+  navBtns.forEach((b,k)=>b.setAttribute('aria-current',k===i));
+  $('count').textContent=`${i+1} / ${SAKES.length}`;
+  const fill=()=>{
+    $('kanji').textContent=s.kanji;$('yomi').textContent=s.yomi;
+    $('type').textContent=s.type;$('desc').textContent=s.desc;
+    $('polish').textContent=s.polish;$('smv').textContent=s.smv;$('temp').textContent=s.temp;
+    $('name').classList.remove('out');$('info').classList.remove('out');
+  };
+  if(instant||reduce){fill();return;}
+  $('name').classList.add('out');$('info').classList.add('out');
+  setTimeout(fill,380);
+}
+
+/* ---------- interaction ---------- */
+let idx=0,busy=false,trans=null;
+let rotY=0,velY=0,mx=0,my=0,tx=0,ty=0;
+function goTo(n){
+  n=(n+SAKES.length)%SAKES.length;
+  if(busy||n===idx)return;
+  const dir=(n>idx||(idx===SAKES.length-1&&n===0))&&!(idx===0&&n===SAKES.length-1)?1:-1;
+  idx=n;applyUI(n);
+  if(reduce){applyBottle(n);return;}
+  busy=true;trans={start:performance.now(),dir,swapped:false,to:n};
+}
+navBtns.forEach(b=>b.addEventListener('click',()=>goTo(+b.dataset.i)));
+
+let wheelAcc=0,wheelT=0;
+addEventListener('wheel',e=>{
+  e.preventDefault();
+  const now=performance.now();if(now-wheelT>300)wheelAcc=0;wheelT=now;
+  wheelAcc+=e.deltaY;
+  if(Math.abs(wheelAcc)>60){goTo(idx+(wheelAcc>0?1:-1));wheelAcc=0;}
+},{passive:false});
+addEventListener('keydown',e=>{
+  if(['ArrowDown','ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();goTo(idx+1);}
+  if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();goTo(idx-1);}
+});
+
+addEventListener('pointermove',e=>{
+  mx=e.clientX/innerWidth*2-1;my=e.clientY/innerHeight*2-1;
+});
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{
+  drag={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,type:e.pointerType};
+  canvas.setPointerCapture(e.pointerId);canvas.classList.add('drag');
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-drag.x;drag.x=e.clientX;drag.y=e.clientY;
+  velY=dx*.012;rotY+=dx*.012;
+});
+const endDrag=e=>{
+  if(!drag)return;
+  const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;
+  if(drag.type!=='mouse'&&Math.abs(dy)>60&&Math.abs(dy)>Math.abs(dx)*1.3)goTo(idx+(dy<0?1:-1));
+  drag=null;canvas.classList.remove('drag');
+};
+canvas.addEventListener('pointerup',endDrag);
+canvas.addEventListener('pointercancel',endDrag);
+
+/* ---------- layout ---------- */
+let baseX=0,baseY=0;
+function resize(){
+  const w=innerWidth,h=innerHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;
+  const portrait=w/h<.8;
+  camera.position.set(0,.5,portrait?12.5:9);
+  camera.lookAt(0,0,0);
+  camera.updateProjectionMatrix();
+  baseX=portrait?.35:0;baseY=portrait?.55:0;
+}
+addEventListener('resize',resize);resize();
+
+/* ---------- loop ---------- */
+applyBottle(0);applyUI(0,true);
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const clock=new THREE.Clock();
+function tick(){
+  const t=clock.getElapsedTime();
+  let spin=0,scale=1,lift=0;
+  if(trans){
+    const p=Math.min((performance.now()-trans.start)/1100,1);
+    spin=ease(p)*Math.PI*2*trans.dir;
+    scale=1-.18*Math.sin(Math.PI*p);
+    lift=.35*Math.sin(Math.PI*p);
+    if(!trans.swapped&&p>.5){applyBottle(trans.to);trans.swapped=true;}
+    if(p>=1){trans=null;busy=false;}
+  }
+  if(!drag){rotY+=velY;velY*=.93;if(!reduce)rotY+=.003;}
+  tx+=(mx-tx)*.06;ty+=(my-ty)*.06;
+  bottle.rotation.set(.1+ty*.22,rotY+spin+tx*.5,-.16+tx*.06);
+  bottle.scale.setScalar(scale);
+  const bob=reduce?0:Math.sin(t*1.2)*.06;
+  bottle.position.set(baseX+tx*.12,baseY+bob+lift,0);
+  shadow.position.x=bottle.position.x;
+  const s=1-(bob+lift)*.6;shadow.scale.set(s,s,s);
+  shadow.material.opacity=.9-(lift)*1.2;
+  renderer.render(scene,camera);
+  requestAnimationFrame(tick);
+}
+tick();
+})();
+</script>
+</body>
+</html>

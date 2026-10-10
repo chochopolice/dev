@@ -1,0 +1,517 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>汐見酒造 蔵の道</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#e3e8de; --ink:#1f2b4d; --sub:#55607a; --card:#fbfcf9; --ai:#2b3d6b; --line:rgba(31,43,77,.18);
+  --mincho:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --gothic:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--card:#fbfcf9}
+}
+:root[data-theme="dark"]{--card:#fbfcf9}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--ground);color:var(--ink);font-family:var(--gothic)}
+canvas#world{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+header{
+  position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);z-index:3;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:20px clamp(16px,4vw,44px);pointer-events:none;
+}
+.brand{font-family:var(--mincho);font-weight:800;font-size:1.1rem;letter-spacing:.25em;pointer-events:auto}
+
+.rail{
+  position:fixed;z-index:3;right:clamp(12px,3vw,36px);top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none;
+}
+.rail button{
+  width:100%;display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  font:inherit;font-size:.82rem;color:var(--ink);background:none;border:0;cursor:pointer;
+  padding:6px 0;min-height:32px;
+}
+.rail .lb{opacity:0;transform:translateX(6px);transition:opacity .25s,transform .25s}
+.rail button:hover .lb,.rail button[aria-current="true"] .lb{opacity:1;transform:none}
+.rail .dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--ink);transition:background .25s,transform .25s}
+.rail button[aria-current="true"] .dot{background:var(--ink);transform:scale(1.25)}
+.rail button:focus-visible,.cta:focus-visible{outline:2px solid var(--ai);outline-offset:3px;border-radius:4px}
+
+main{position:relative;z-index:2;pointer-events:none}
+section{min-height:100vh;display:flex;align-items:center;padding:90px clamp(16px,6vw,90px)}
+.hero{align-items:flex-start;padding-top:18vh}
+.hero h1{font-family:var(--mincho);font-weight:800;font-size:clamp(2.4rem,6vw,4.6rem);line-height:1.25;margin:0 0 18px;letter-spacing:.04em}
+.hero p{margin:0;font-size:1rem;color:var(--sub);line-height:1.9;max-width:28em}
+.scrollhint{margin-top:34px;font-size:.85rem;color:var(--sub);display:flex;align-items:center;gap:10px}
+.scrollhint::before{content:"";width:1px;height:40px;background:var(--ink);animation:drop 2s ease-in-out infinite;transform-origin:top}
+@keyframes drop{0%{transform:scaleY(0)}50%{transform:scaleY(1)}100%{transform:scaleY(0);transform-origin:bottom}}
+
+.card{
+  pointer-events:auto;width:min(380px,100%);
+  background:var(--card);border-radius:4px 22px 4px 22px;
+  padding:28px 30px 30px;box-shadow:0 18px 40px -22px rgba(31,43,77,.45);
+}
+.num{font-family:var(--mincho);font-weight:800;font-size:2.6rem;line-height:1;margin:0 0 6px;color:var(--ai)}
+.card h2{font-family:var(--mincho);font-weight:800;font-size:1.55rem;margin:0 0 14px;line-height:1.4}
+.card p{margin:0;font-size:.93rem;line-height:1.95;color:var(--sub)}
+.fact{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-size:.85rem;display:flex;gap:16px}
+.fact b{font-family:var(--mincho);font-size:1.25rem;color:var(--ink);font-weight:800}
+.cta{
+  display:inline-block;margin-top:22px;padding:12px 28px;border-radius:999px;
+  background:var(--ai);color:#fff;text-decoration:none;font-size:.92rem;font-weight:500;
+}
+.cta:hover{background:var(--ink)}
+
+#tip{
+  position:fixed;z-index:4;pointer-events:none;opacity:0;transition:opacity .15s;
+  background:var(--ink);color:#fff;font-size:.8rem;padding:6px 12px;border-radius:999px;
+  transform:translate(-50%,calc(-100% - 14px));white-space:nowrap;
+}
+.nogl{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center}
+
+@media (max-width:760px){
+  section{align-items:flex-end;padding:80px 16px 40px}
+  .hero{align-items:flex-start;padding-top:96px}
+  .card{padding:20px 22px 22px}
+  .num{font-size:2rem}
+  .card h2{font-size:1.25rem;margin-bottom:8px}
+  .card p{font-size:.85rem;line-height:1.8}
+  .rail{top:auto;bottom:auto;top:76px;transform:none;flex-direction:row;gap:2px;right:12px}
+  .rail .lb{display:none}
+  .rail button{padding:6px 4px}
+}
+@media (prefers-reduced-motion:reduce){
+  .scrollhint::before{animation:none}
+}
+</style>
+</head>
+<body>
+<canvas id="world" aria-hidden="true"></canvas>
+<div id="tip"></div>
+
+<header><div class="brand">汐見酒造</div></header>
+
+<nav aria-label="工程">
+<ul class="rail" id="rail"></ul>
+</nav>
+
+<main>
+  <section class="hero" data-i="0" data-label="蔵の道">
+    <div>
+      <h1>一本の酒が<br>できるまで。</h1>
+      <p>田んぼから港まで、蔵のまわりを歩くようにたどってください。建物にカーソルを合わせると名前が出ます。</p>
+      <div class="scrollhint">スクロールで進む</div>
+    </div>
+  </section>
+
+  <section data-i="1" data-label="米を育てる"><div class="card">
+    <p class="num">一</p><h2>米を育てる</h2>
+    <p>蔵から歩いて十分の田で、酒米の山田錦を育てています。穂が重く倒れやすいので、背の高い稲を風から守りながら秋を待ちます。</p>
+    <div class="fact"><span>収穫<br><b>十月</b></span><span>品種<br><b>山田錦</b></span></div>
+  </div></section>
+
+  <section data-i="2" data-label="米を磨く"><div class="card">
+    <p class="num">二</p><h2>米を磨く</h2>
+    <p>玄米の外側には雑味のもとになる脂やたんぱく質があります。精米所で少しずつ削り、香りのよい芯だけを残します。昔はこの水車が臼を回していました。</p>
+    <div class="fact"><span>精米歩合<br><b>40〜65%</b></span><span>所要時間<br><b>約三日</b></span></div>
+  </div></section>
+
+  <section data-i="3" data-label="蒸して麹をつくる"><div class="card">
+    <p class="num">三</p><h2>蒸して、麹をつくる</h2>
+    <p>洗って水を吸わせた米を、早朝の大きな甑で蒸し上げます。一部は麹室に運び、麹菌をふりかけて二日がかりで麹に育てます。</p>
+    <div class="fact"><span>麹室の温度<br><b>約30℃</b></span><span>作業開始<br><b>午前五時</b></span></div>
+  </div></section>
+
+  <section data-i="4" data-label="仕込む"><div class="card">
+    <p class="num">四</p><h2>タンクで仕込む</h2>
+    <p>蒸米・麹・水を三回に分けてタンクに加え、ひと月ほどかけて発酵させます。軒先の杉玉が緑から茶に変わるころ、新酒の季節です。</p>
+    <div class="fact"><span>発酵期間<br><b>約三十日</b></span><span>タンク<br><b>六基</b></span></div>
+  </div></section>
+
+  <section data-i="5" data-label="搾って詰める"><div class="card">
+    <p class="num">五</p><h2>搾って、瓶に詰める</h2>
+    <p>もろみを搾って酒と酒粕に分け、火入れをしてから四合瓶に詰めていきます。ラベルは一枚ずつ手で貼っています。</p>
+    <div class="fact"><span>一日の瓶詰め<br><b>約二千本</b></span><span>容量<br><b>720ml</b></span></div>
+  </div></section>
+
+  <section data-i="6" data-label="届ける"><div class="card">
+    <p class="num">六</p><h2>国内へ、海の向こうへ</h2>
+    <p>トラックで全国の酒販店へ。港からは冷蔵コンテナで海外の取引先へ送り出します。温度を保ったまま、蔵の味のまま届けます。</p>
+    <div class="fact"><span>出荷先<br><b>12か国</b></span><span>輸送温度<br><b>5℃</b></span></div>
+  </div></section>
+
+  <section data-i="7" data-label="蔵の酒"><div class="card">
+    <h2>道のりの先に、一本の酒。</h2>
+    <p>ここまでの工程を経た三つの酒を、蔵から直接お届けしています。</p>
+    <a class="cta" href="./汐見酒造_酒.html" onclick="return">蔵の酒を見る</a>
+  </div></section>
+</main>
+
+<div class="nogl" id="nogl"><p>この端末では3D表示を読み込めませんでした。別のブラウザで開き直してください。</p></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const canvas=document.getElementById('world');
+let renderer;
+try{ if(!window.THREE) throw 0; renderer=new THREE.WebGLRenderer({canvas,antialias:true}); }
+catch(e){ document.getElementById('nogl').style.display='grid'; return; }
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+const C={ground:0xe3e8de,road:0xc7cbd2,dash:0xffffff,paddy:0x9cc27a,paddyWater:0xb8d3c8,rice:0xc9b85a,
+  wall:0xf7f6f1,namako:0x2a2d36,roof:0x3c4252,wood:0x7a5634,water:0x6f9bb8,tree:0x6f9a5c,tree2:0x4f7d4a,
+  ai:0x2b3d6b,tank:0xf2f2ee,band:0x2b3d6b,sugi:0x5d7a3a,truck:0xf4f4f0,cab:0x2b3d6b,ship:0x2b3d6b,cont:0xd9d2c3,glass:0x6a8be0};
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(C.ground);
+scene.fog=null;
+
+const HALF=14;
+const camera=new THREE.OrthographicCamera(-HALF,HALF,HALF,-HALF,-200,400);
+scene.add(new THREE.HemisphereLight(0xffffff,0xb3bcae,.62));
+const sun=new THREE.DirectionalLight(0xfff6ea,.72);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-34,right:34,top:34,bottom:-34,near:1,far:140});
+sun.shadow.bias=-.0008;
+scene.add(sun,sun.target);
+
+const mats={};
+const M=(c,o={})=>{const k=c+JSON.stringify(o);return mats[k]||(mats[k]=new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.9,metalness:0,flatShading:true},o)));};
+const hoverables=[];
+function add(geo,color,x,y,z,parent,opt={}){
+  const m=new THREE.Mesh(geo,M(color,opt.mat));
+  m.position.set(x,y,z);m.castShadow=opt.cast!==false;m.receiveShadow=true;
+  (parent||scene).add(m);return m;
+}
+const box=(w,h,d,c,x,y,z,p,o)=>add(new THREE.BoxGeometry(w,h,d),c,x,y+h/2,z,p,o);
+function tagGroup(name,x,z,rot){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot||0;g.userData.tag=name;scene.add(g);hoverables.push(g);return g;}
+
+/* ---------- ground, road, river ---------- */
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(700,700),M(C.ground));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const ROAD_Z=7;
+const road=new THREE.Mesh(new THREE.PlaneGeometry(130,3.2),M(C.road));
+road.rotation.x=-Math.PI/2;road.position.set(4,.02,ROAD_Z);road.receiveShadow=true;scene.add(road);
+for(let x=-58;x<66;x+=3){const d=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.16),M(C.dash));d.rotation.x=-Math.PI/2;d.position.set(x,.03,ROAD_Z);scene.add(d);}
+// river running behind the mill, under the road toward the port
+const riverPts=[[-30,-30],[-27,-14],[-24,-6],[-25,2],[-22,12],[-18,40]];
+const riverShape=new THREE.CatmullRomCurve3(riverPts.map(([x,z])=>new THREE.Vector3(x,.04,z)));
+const rpts=riverShape.getPoints(80);
+for(let i=0;i<rpts.length-1;i++){
+  const a=rpts[i],b=rpts[i+1],len=a.distanceTo(b);
+  const seg=new THREE.Mesh(new THREE.PlaneGeometry(2.6,len+.4),M(C.water,{roughness:.3}));
+  seg.rotation.x=-Math.PI/2;seg.rotation.z=-Math.atan2(b.x-a.x,b.z-a.z);
+  seg.position.set((a.x+b.x)/2,.035,(a.z+b.z)/2);seg.receiveShadow=true;scene.add(seg);
+}
+// bridge
+box(4,.3,4.2,C.wood,-23.2,.05,ROAD_Z);
+
+/* ---------- builders ---------- */
+function kura(g,x,z,w,d,h,rot){
+  const k=new THREE.Group();k.position.set(x,0,z);k.rotation.y=rot||0;g.add(k);
+  box(w,h,d,C.wall,0,0,0,k);
+  box(w+.08,h*.32,d+.08,C.namako,0,0,0,k);
+  // gable roof as a 3-sided prism
+  const roof=new THREE.Mesh(new THREE.CylinderGeometry(d*.62,d*.62,w+.6,3,1),M(C.roof));
+  roof.rotation.z=Math.PI/2;roof.rotation.x=Math.PI/2;roof.position.y=h+d*.18;roof.scale.set(1,1,.5);
+  roof.castShadow=true;k.add(roof);
+  // small windows
+  for(let i=-1;i<=1;i+=2) box(.5,.5,.06,C.namako,i*w*.25,h*.6,d/2+.02,k,{cast:false});
+  return k;
+}
+function tree(x,z,s){
+  s=s||1;const t=new THREE.Group();t.position.set(x,0,z);scene.add(t);
+  box(.25*s,.8*s,.25*s,C.wood,0,0,0,t);
+  const c=add(new THREE.IcosahedronGeometry(.85*s,0),Math.random()<.5?C.tree:C.tree2,0,1.45*s,0,t);
+  c.rotation.y=Math.random()*3;return t;
+}
+
+/* 1. 田んぼ */
+const RICE=tagGroup('田んぼ(山田錦)',-38,0);
+const riceTufts=[];
+const tuftGeo=new THREE.ConeGeometry(.12,.7,4);
+let riceIM;
+(function(){
+  const plots=[[-6,-5],[0,-5],[6,-5],[-6,1],[0,1],[6,1]];
+  const pts=[];
+  plots.forEach(([px,pz])=>{
+    box(5.4,.12,5.4,0x8a9a6e,px,0,pz,RICE);
+    box(5,.06,5,C.paddyWater,px,.12,pz,RICE,{mat:{roughness:.4}});
+    for(let i=0;i<7;i++)for(let j=0;j<7;j++)pts.push([px-2.1+i*.7,pz-2.1+j*.7]);
+  });
+  riceIM=new THREE.InstancedMesh(tuftGeo,M(C.rice),pts.length);
+  riceIM.castShadow=true;
+  pts.forEach((p,i)=>riceTufts.push({x:p[0],z:p[1],ph:Math.random()*6}));
+  RICE.add(riceIM);
+  // farmhouse
+  const fh=new THREE.Group();fh.position.set(-11,0,-2);RICE.add(fh);
+  box(3,1.6,2.6,0xd9cdb5,0,0,0,fh);
+  const r=new THREE.Mesh(new THREE.CylinderGeometry(1.9,1.9,3.6,4,1),M(0x8c7a4e));
+  r.rotation.y=Math.PI/4;r.scale.set(1,.35,.75);r.position.y=2.15;r.castShadow=true;fh.add(r);
+  // scarecrow
+  box(.08,1.2,.08,C.wood,3,.12,4.4,RICE);box(.9,.08,.08,C.wood,3,.95,4.4,RICE);
+  add(new THREE.SphereGeometry(.18,6,4),0xe8d9a8,3,1.42,4.4,RICE);
+})();
+const dummy=new THREE.Object3D();
+function updateRice(t){
+  riceTufts.forEach((r,i)=>{
+    dummy.position.set(r.x,.47,r.z);
+    dummy.rotation.set(Math.sin(t*1.6+r.x*.5+r.ph*.2)*.18,0,Math.cos(t*1.3+r.z*.4)*.12);
+    dummy.updateMatrix();riceIM.setMatrixAt(i,dummy.matrix);
+  });
+  riceIM.instanceMatrix.needsUpdate=true;
+}
+
+/* 2. 精米所 + 水車 */
+const MILL=tagGroup('精米所',-20,-3);
+box(5,3,4,C.wall,0,0,0,MILL);box(5.08,.9,4.08,C.namako,0,0,0,MILL);
+(function(){const r=new THREE.Mesh(new THREE.CylinderGeometry(2.8,2.8,5.6,3,1),M(C.roof));
+ r.rotation.set(Math.PI/2,0,Math.PI/2);r.scale.set(1,1,.45);r.position.y=3.6;r.castShadow=true;MILL.add(r);})();
+add(new THREE.CylinderGeometry(1,1,4.5,12),0xd8dad6,3.6,2.25,-.6,MILL); // silo
+add(new THREE.ConeGeometry(1.05,.8,12),C.roof,3.6,4.9,-.6,MILL);
+const WHEEL_G=tagGroup('水車',-24.3,-4);
+const wheel=new THREE.Group();wheel.position.y=1.9;wheel.rotation.y=Math.PI/2;WHEEL_G.add(wheel);
+(function(){
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(1.7,.12,6,24),M(C.wood));rim.castShadow=true;wheel.add(rim);
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    const sp=new THREE.Mesh(new THREE.BoxGeometry(.1,3.4,.1),M(C.wood));sp.rotation.z=a;wheel.add(sp);
+    const pd=new THREE.Mesh(new THREE.BoxGeometry(.7,.12,.7),M(C.wood));
+    pd.position.set(Math.cos(a)*1.75,Math.sin(a)*1.75,0);pd.rotation.z=a;pd.castShadow=true;wheel.add(pd);
+  }
+  box(.2,1.9,.2,C.wood,0,0,-.9,WHEEL_G);box(.2,1.9,.2,C.wood,0,0,.9,WHEEL_G);
+})();
+
+/* 3. 蒸し蔵 (chimney with steam) */
+const STEAM=tagGroup('蒸し蔵・麹室',-6,2);
+kura(STEAM,0,0,6,3.6,3);
+kura(STEAM,-1.5,-4.2,3.4,2.6,2.2,Math.PI/2);
+box(.8,2.4,.8,0xb9b3a6,2,3.2,0,STEAM);
+const puffs=[];
+for(let i=0;i<18;i++){
+  const p=new THREE.Mesh(new THREE.IcosahedronGeometry(.35,0),new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.8,flatShading:true,roughness:1}));
+  p.userData={life:i/18};p.castShadow=false;STEAM.add(p);puffs.push(p);
+}
+function updateSteam(dt){
+  puffs.forEach(p=>{
+    p.userData.life=(p.userData.life+dt*.28)%1;
+    const L=p.userData.life;
+    p.position.set(2+Math.sin(L*6+p.id)*.3+L*1.2,5.7+L*4,Math.cos(L*5)*.3);
+    p.scale.setScalar(.6+L*1.6);
+    p.material.opacity=.85*(1-L);
+  });
+}
+
+/* 4. 仕込み蔵 + タンク + 杉玉 */
+const BREW=tagGroup('仕込み蔵',9,-3);
+kura(BREW,0,-2,8,4,3.6);
+const sugi=add(new THREE.IcosahedronGeometry(.6,1),C.sugi,-2,2.6,.25,BREW);sugi.userData.tag='杉玉';hoverables.push(sugi);
+box(.05,.5,.05,C.wood,-2,3.1,.25,BREW);
+const TANKS=tagGroup('発酵タンク',9,3.6);
+for(let i=0;i<6;i++){
+  const tx=-5+i*2.05,tz=(i%2)*-.2;
+  add(new THREE.CylinderGeometry(.85,.85,3.2,16),C.tank,tx,1.6,tz,TANKS,{mat:{roughness:.5}});
+  add(new THREE.CylinderGeometry(.87,.87,.22,16),C.band,tx,2.3,tz,TANKS);
+  add(new THREE.CylinderGeometry(.86,.6,.4,16),C.tank,tx,3.4,tz,TANKS,{mat:{roughness:.5}});
+}
+
+/* 5. 瓶詰め場 + conveyor */
+const BOTTLE=tagGroup('瓶詰め場',23,1);
+box(7,3,4,C.wall,0,0,-2.4,BOTTLE);
+box(7.2,.3,4.2,C.ai,0,3,-2.4,BOTTLE);
+box(9,.7,.9,0x9aa0aa,0,0,1.2,BOTTLE);
+const bottles=[];
+for(let i=0;i<12;i++){
+  const b=new THREE.Group();BOTTLE.add(b);
+  add(new THREE.CylinderGeometry(.16,.16,.55,8),C.glass,0,.98,0,b,{mat:{roughness:.2}});
+  add(new THREE.CylinderGeometry(.06,.1,.25,8),C.glass,0,1.38,0,b,{mat:{roughness:.2}});
+  add(new THREE.BoxGeometry(.34,.22,.34),0xffffff,0,.95,0,b,{cast:false});
+  b.userData.off=i/12;b.position.z=1.2;bottles.push(b);
+}
+function updateBottles(t){bottles.forEach(b=>{const u=(b.userData.off+t*.05)%1;b.position.x=-4.3+u*8.6;b.visible=u>.02&&u<.98;});}
+
+/* 6. 港 + 船 + 倉庫 */
+const PORT=tagGroup('港',39,-3);
+const sea=new THREE.Mesh(new THREE.PlaneGeometry(40,26),M(C.water,{roughness:.25}));
+sea.rotation.x=-Math.PI/2;sea.position.set(10,.03,-9);sea.receiveShadow=true;PORT.add(sea);
+box(14,.5,2,0xbfc3c9,-3,0,1,PORT); // quay
+const SHIP=tagGroup('冷蔵コンテナ船',40,-8);
+const ship=new THREE.Group();SHIP.add(ship);
+box(12,1.4,3.2,C.ship,0,-.2,0,ship);
+box(2.4,2.4,2.6,0xf2f2ee,4.2,1.2,0,ship);
+box(.5,1.2,.5,0xf2f2ee,4.6,3.6,0,ship);
+const contColors=[0xd9d2c3,0x2b3d6b,0xe8e4da,0x7d8aa8];
+for(let i=0;i<4;i++)for(let j=0;j<2;j++)box(1.9,.9,1.2,contColors[(i+j)%4],-4.2+i*2,1.2+j*.95,0,ship);
+// crane
+const crane=tagGroup('ガントリークレーン',33,-4.2);
+box(.3,6,.3,0xd8dad6,-1.2,0,-1.2,crane);box(.3,6,.3,0xd8dad6,1.2,0,-1.2,crane);
+box(.3,6,.3,0xd8dad6,-1.2,0,1.2,crane);box(.3,6,.3,0xd8dad6,1.2,0,1.2,crane);
+box(.4,.4,11,C.ai,0,6,-3,crane);
+const WARE=tagGroup('出荷倉庫',30,3.2);
+box(6,2.6,3.4,0xeceee9,0,0,0,WARE);box(6.2,.25,3.6,C.ai,0,2.6,0,WARE);
+box(1.6,1.8,.05,0x8b93a3,-1.4,0,1.72,WARE,{cast:false});box(1.6,1.8,.05,0x8b93a3,1.4,0,1.72,WARE,{cast:false});
+
+/* trucks */
+function makeTruck(){
+  const g=tagGroup('出荷トラック',0,ROAD_Z);
+  box(3.2,1.6,1.3,C.truck,-.5,.35,0,g);
+  box(1.1,1.3,1.3,C.cab,1.6,.35,0,g);
+  box(.06,.5,1.1,0xa9c2e8,2.16,1.05,0,g,{cast:false});
+  [[-1.4,.62],[-1.4,-.62],[1.5,.62],[1.5,-.62]].forEach(([x,z])=>{
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.2,10),M(0x222222));w.rotation.x=Math.PI/2;w.position.set(x,.32,z);g.add(w);
+  });
+  return g;
+}
+const trucks=[{g:makeTruck(),off:0,dir:1,lane:-.75},{g:makeTruck(),off:.5,dir:-1,lane:.75}];
+function updateTrucks(t){
+  trucks.forEach(tk=>{
+    const u=(tk.off+t*.025)%1;
+    const x=tk.dir>0?-52+u*104:52-u*104;
+    tk.g.position.set(x,0,ROAD_Z+tk.lane);
+    tk.g.rotation.y=tk.dir>0?0:Math.PI;
+  });
+}
+
+/* scenery */
+[[-46,-12],[-30,-10],[-15,-12],[-13,8],[-2,-10],[3,11],[17,-9],[16,10],[28,-12],[-48,10],[-34,12],[45,10],[22,12],[-8,12],[5,-14],[-40,-16],[30,12]]
+ .forEach(([x,z])=>tree(x,z,.9+Math.random()*.5));
+// low stone walls along the kura row
+for(let x=-14;x<20;x+=1.6) box(1.5,.35,.4,0xc5c0b4,x,0,10.2);
+
+/* ---------- camera path ---------- */
+const STOPS=[
+  {p:[0,0,0],z:.42},
+  {p:[-38,0,-1],z:1.15},
+  {p:[-21.5,0,-3],z:1.35},
+  {p:[-6,0,0],z:1.3},
+  {p:[9,0,0],z:1.15},
+  {p:[23,0,0],z:1.4},
+  {p:[37,0,-4],z:1.0},
+  {p:[2,0,-2],z:.45}
+];
+const sections=[...document.querySelectorAll('main section')];
+const rail=document.getElementById('rail');
+const railBtns=sections.map((s,i)=>{
+  const li=document.createElement('li');const b=document.createElement('button');
+  b.innerHTML=`<span class="lb">${s.dataset.label}</span><span class="dot"></span>`;
+  b.setAttribute('aria-label',s.dataset.label);
+  b.onclick=()=>s.scrollIntoView({behavior:reduce?'auto':'smooth'});
+  li.appendChild(b);rail.appendChild(li);return b;
+});
+
+function scrollIndex(){
+  const vc=scrollY+innerHeight/2;
+  const centers=sections.map(s=>s.offsetTop+s.offsetHeight/2);
+  if(vc<=centers[0])return 0;
+  for(let i=0;i<centers.length-1;i++){
+    if(vc<centers[i+1]) return i+(vc-centers[i])/(centers[i+1]-centers[i]);
+  }
+  return centers.length-1;
+}
+const smooth=t=>{t=Math.min(Math.max((t-.18)/.64,0),1);return t*t*(3-2*t);};
+function pathAt(f){
+  const i=Math.min(Math.floor(f),STOPS.length-2),t=smooth(f-i);
+  const a=STOPS[i],b=STOPS[i+1];
+  const p=new THREE.Vector3().fromArray(a.p).lerp(new THREE.Vector3().fromArray(b.p),t);
+  // zoom out a little mid-way so the hop reads as travel
+  const z=THREE.MathUtils.lerp(a.z,b.z,t)*(1-.28*Math.sin(Math.PI*t));
+  return {p,z};
+}
+
+/* ---------- layout & pointer ---------- */
+let mobile=false;
+function resize(){
+  const w=innerWidth,h=innerHeight;
+  renderer.setSize(w,h,false);
+  const a=w/h;mobile=w<=760;
+  const half=mobile?HALF*1.15:HALF;
+  camera.left=-half*a;camera.right=half*a;camera.top=half;camera.bottom=-half;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize',resize);resize();
+
+const ptr=new THREE.Vector2(9,9),ndc=new THREE.Vector2();let px=0,py=0;
+const tip=document.getElementById('tip');
+addEventListener('pointermove',e=>{
+  ptr.set(e.clientX,e.clientY);
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+});
+const ray=new THREE.Raycaster();
+let hovered=null;
+function findTag(o){while(o){if(o.userData&&o.userData.tag)return o;o=o.parent;}return null;}
+function setHover(g){
+  if(hovered===g)return;
+  if(hovered)hovered.traverse(m=>{if(m.isMesh&&m.material.emissive&&m.userData.hl){m.material=m.userData.hl;delete m.userData.hl;}});
+  hovered=g;
+  if(g){
+    g.traverse(m=>{if(m.isMesh&&!m.userData.hl&&m.material.emissive){m.userData.hl=m.material;const c=m.material.clone();c.emissive=new THREE.Color(0x2b3d6b);c.emissiveIntensity=.22;m.material=c;}});
+    tip.textContent=g.userData.tag;tip.style.opacity=1;
+  }else tip.style.opacity=0;
+}
+
+/* ---------- loop ---------- */
+const cur={p:new THREE.Vector3(0,0,0),z:.42};
+const clock=new THREE.Clock();let lastIdx=-1,frame=0;
+function tick(){
+  const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+  const f=scrollIndex();
+  const tgt=pathAt(f);
+  const k=reduce?1:1-Math.pow(.0015,dt);
+  cur.p.lerp(tgt.p,k);cur.z+= (tgt.z-cur.z)*k;
+
+  // pointer parallax: small orbit around the target
+  px+=(ndc.x-px)*.05;py+=(ndc.y-py)*.05;
+  const yaw=Math.PI/4+(reduce?0:px*.12), pitch=35.264*Math.PI/180+(reduce?0:py*.05);
+  const R=60;
+  // keep the subject clear of the text card
+  const look=cur.p.clone();
+  const rightV=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  const downV=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)); // moves subject up on screen
+  if(mobile) look.add(downV.multiplyScalar(-5/cur.z*Math.min(1,f)));
+  else look.add(rightV.multiplyScalar(-(innerWidth/innerHeight)*4.2/cur.z));
+  camera.position.set(look.x+R*Math.cos(pitch)*Math.sin(yaw),look.y+R*Math.sin(pitch),look.z+R*Math.cos(pitch)*Math.cos(yaw));
+  camera.lookAt(look);camera.zoom=cur.z;camera.updateProjectionMatrix();
+  sun.position.set(look.x+18,look.y+40,look.z+12);sun.target.position.copy(look);
+
+  if(!reduce){
+    updateRice(t);updateSteam(dt);updateBottles(t);updateTrucks(t);
+    wheel.rotation.z-=dt*.8;
+    ship.position.y=Math.sin(t*1.1)*.12;ship.rotation.x=Math.sin(t*.9)*.015;
+  }else if(frame===0){updateRice(0);updateSteam(0);updateBottles(0);updateTrucks(0);}
+
+  const idx=Math.round(f);
+  if(idx!==lastIdx){railBtns.forEach((b,i)=>b.setAttribute('aria-current',i===idx));lastIdx=idx;}
+
+  if(frame++%3===0&&ptr.x<9e8){
+    const el=document.elementFromPoint(ptr.x,ptr.y);
+    if(el===canvas||el===document.body||(el&&el.tagName==='SECTION')||(el&&el.tagName==='MAIN')){
+      ray.setFromCamera(ndc,camera);
+      const hit=ray.intersectObjects(hoverables,true)[0];
+      setHover(hit?findTag(hit.object):null);
+    }else setHover(null);
+  }
+  if(hovered){tip.style.left=ptr.x+'px';tip.style.top=ptr.y+'px';}
+  renderer.render(scene,camera);
+  requestAnimationFrame(tick);
+}
+tick();
+})();
+</script>
+</body>
+</html>
+
+</body></html>
