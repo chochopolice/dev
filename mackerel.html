@@ -1,0 +1,1174 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>マカロー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Share+Tech+Mono&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* Layout: the sea fills the screen; HUD pinned to the four corners; the title is a field-guide panel on the left with the live 3D Makaro on the right. One deliberate dark underwater world. */
+:root{
+  --abyss:#03141f;
+  --tide:#0a3346;
+  --tide-soft:rgba(10,51,70,.62);
+  --foam:#e6f7f2;
+  --mist:#a7c9c3;
+  --kelp:#8fd8c2;
+  --makaro:#ffa43a;
+  --makaro-deep:#b8661a;
+  --on-accent:#2a1405;
+  --danger:#ff5b6b;
+  --diver:#ffd34d;
+  --panel:rgba(3,20,31,.80);
+  --line:rgba(230,247,242,.16);
+  --shade:rgba(3,20,31,.62);
+  --f-display:"Dela Gothic One","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+  --f-body:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+  --f-data:"Share Tech Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--abyss);color:var(--foam);font-family:var(--f-body);font-weight:500;overflow:hidden;-webkit-font-smoothing:antialiased}
+#app{position:fixed;inset:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;outline:none}
+.label{font-family:var(--f-data);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--kelp)}
+.num{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;inset:0;pointer-events:none}
+.hud-tl{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px))}
+.score{font-family:var(--f-display);font-size:48px;line-height:1;color:var(--makaro);font-variant-numeric:tabular-nums;text-shadow:0 2px 0 var(--shade),0 0 26px rgba(255,164,58,.35)}
+.tally{margin-top:6px;font-size:13px;color:var(--foam);text-shadow:0 1px 6px var(--shade)}
+.hud-tr{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:3px;justify-items:end}
+.stat{display:flex;gap:10px;align-items:baseline;text-shadow:0 1px 6px var(--shade)}
+.stat .num{font-size:20px;color:var(--foam)}
+.btns{display:flex;gap:8px;margin-top:6px;pointer-events:auto}
+.icon-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--foam);display:grid;place-items:center;cursor:pointer;padding:0}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn[aria-pressed="true"]{color:var(--mist)}
+.hud-br{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:grid;justify-items:center;gap:6px}
+#sonar{width:150px;height:150px;border-radius:50%;display:block;box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(0,0,0,.35)}
+.depth{display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 6px var(--shade)}
+.depth .lbl{font-size:12px;color:var(--kelp);letter-spacing:.1em}
+.depth .num{font-size:22px}
+.depth .unit{font-family:var(--f-data);font-size:13px;color:var(--mist)}
+.hud-bl{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));margin:0;max-width:min(560px,calc(100% - 210px));font-size:12px;line-height:1.7;color:var(--mist);text-shadow:0 1px 6px var(--shade)}
+.hud-bl kbd{font-size:11px}
+.warn{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--f-display);font-size:19px;letter-spacing:.04em;color:var(--danger);background:var(--panel);border:1px solid rgba(255,91,107,.45);padding:7px 16px;border-radius:999px;animation:blink .7s steps(2,jump-none) infinite}
+.toast{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--f-display);font-size:17px;color:var(--diver);background:var(--panel);border:1px solid var(--line);padding:7px 16px;border-radius:999px}
+@keyframes blink{0%{opacity:1}100%{opacity:.55}}
+
+#vignette{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(255,91,107,0) 52%,rgba(255,60,80,.55) 100%)}
+#markers,#popups{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mk{position:absolute;left:0;top:0;width:0;height:0;color:var(--danger)}
+.mk-ring{position:absolute;left:-24px;top:-24px;width:48px;height:48px;border:2px solid var(--danger);border-radius:50%;box-shadow:0 0 14px rgba(255,91,107,.55);animation:pulse .8s ease-in-out infinite alternate}
+.mk-arrow{position:absolute;left:-14px;top:-14px;width:28px;height:28px;display:none}
+.mk-arrow::before{content:"";position:absolute;left:6px;top:4px;border-left:18px solid var(--danger);border-top:10px solid transparent;border-bottom:10px solid transparent;filter:drop-shadow(0 0 6px rgba(255,91,107,.8))}
+.mk-label{position:absolute;left:0;top:30px;transform:translateX(-50%);white-space:nowrap;font-family:var(--f-data);font-size:12px;background:var(--panel);padding:2px 7px;border-radius:6px}
+.mk.off .mk-ring{display:none}
+.mk.off .mk-arrow{display:block}
+.mk.off .mk-label{top:18px}
+@keyframes pulse{from{transform:scale(.85)}to{transform:scale(1.1)}}
+.pop{position:absolute;font-family:var(--f-display);font-size:28px;color:var(--makaro);text-shadow:0 2px 0 var(--shade),0 0 18px rgba(255,164,58,.5);transform:translate(-50%,-50%);animation:rise .95s ease-out forwards;white-space:nowrap}
+.pop.big{font-size:36px;color:var(--diver)}
+@keyframes rise{0%{opacity:0;transform:translate(-50%,-40%) scale(.6)}18%{opacity:1;transform:translate(-50%,-70%) scale(1.12)}100%{opacity:0;transform:translate(-50%,-190%) scale(1)}}
+
+/* ---------- overlays ---------- */
+.overlay{position:absolute;inset:0;display:flex;padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.panel{width:min(470px,100%);max-height:100%;overflow-y:auto;overscroll-behavior:contain;padding:24px 24px 22px;background:var(--panel);border:1px solid var(--line);border-radius:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:14px}
+.panel h2{margin:4px 0 0;font-size:12px;font-weight:700;letter-spacing:.22em;color:var(--kelp)}
+.eyebrow{margin:0;font-size:13px;font-weight:700;letter-spacing:.3em;color:var(--kelp)}
+#title{align-items:center;justify-content:flex-start;background:linear-gradient(90deg,rgba(3,20,31,.78) 0%,rgba(3,20,31,.35) 40%,rgba(3,20,31,0) 64%)}
+#title .panel{margin-left:clamp(0px,3vw,48px)}
+.title-head{display:flex;flex-direction:column;gap:6px}
+h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:clamp(54px,7.5vw,88px);line-height:.95;letter-spacing:.02em;color:var(--makaro);text-shadow:0 4px 0 var(--makaro-deep),0 0 40px rgba(255,164,58,.25);text-wrap:balance}
+.lede{margin:0;font-size:14.5px;line-height:1.75;color:var(--foam);max-width:40em}
+.start-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px}
+.best-line{margin:0;font-size:13px;color:var(--mist)}
+.best-line .num{font-size:17px;color:var(--makaro)}
+.btn{font:inherit;cursor:pointer;border:0;border-radius:14px}
+.primary{font-family:var(--f-display);font-size:21px;letter-spacing:.08em;color:var(--on-accent);background:var(--makaro);padding:13px 24px;box-shadow:0 5px 0 var(--makaro-deep);transition:transform .08s,box-shadow .08s}
+.primary:hover{filter:brightness(1.06)}
+.primary:active{transform:translateY(3px);box-shadow:0 2px 0 var(--makaro-deep)}
+.ghost{background:transparent;color:var(--foam);border:1px solid var(--line);padding:12px 18px;font-weight:700;font-size:14px}
+.ghost:hover{background:var(--tide-soft)}
+:focus-visible{outline:3px solid var(--foam);outline-offset:3px}
+.dex{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dex li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center;padding:6px 10px 6px 6px;border-radius:14px;background:var(--tide-soft)}
+.dex img{width:52px;height:52px;border-radius:50%;display:block;background:radial-gradient(circle at 50% 38%,#1f6680,#062433 78%)}
+.dex .nm{display:block;font-size:13px;font-weight:700;line-height:1.3}
+.dex .tag{display:inline-block;margin-top:1px;font-size:11px;font-weight:700;letter-spacing:.04em}
+.dex .prey .tag{color:var(--kelp)}
+.dex .pred .tag{color:var(--danger)}
+.dex .you .tag{color:var(--makaro)}
+.dex .note{display:block;font-size:11px;line-height:1.4;color:var(--mist);margin-top:1px}
+.keys{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 14px;margin:0;font-size:13px}
+.keys dt{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.keys dd{margin:0;color:var(--mist);align-self:center}
+.keys .or{font-size:11px;color:var(--mist)}
+kbd{font-family:var(--f-data);font-size:12px;padding:2px 7px;border-radius:6px;border:1px solid var(--line);background:rgba(230,247,242,.07);color:var(--foam);white-space:nowrap}
+#over,#pauseOv{align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(3,20,31,.35),rgba(3,20,31,.82))}
+#over .panel{width:min(430px,100%)}
+#overCause{color:var(--danger);letter-spacing:.12em;font-size:15px}
+.over-head{display:grid;grid-template-columns:96px minmax(0,1fr);gap:16px;align-items:center}
+.over-head img{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#1f6680,#062433 78%)}
+#overScore{font-size:64px}
+.newbest{margin-top:6px;font-family:var(--f-display);font-size:15px;color:var(--diver)}
+.result{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
+.result div{padding:8px 12px;border-radius:12px;background:var(--tide-soft)}
+.result dt{font-size:11px;color:var(--mist);letter-spacing:.08em}
+.result dd{margin:2px 0 0;font-family:var(--f-data);font-size:20px;font-variant-numeric:tabular-nums}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.small{margin:0;font-size:12px;color:var(--mist)}
+#pauseOv .panel{width:min(360px,100%)}
+#pauseOv h2{font-family:var(--f-display);font-size:28px;letter-spacing:.04em;color:var(--foam);font-weight:400;margin:0}
+#fail{align-items:center;justify-content:center;background:var(--abyss)}
+#fail h2{font-size:18px;letter-spacing:.04em;color:var(--foam)}
+#fail p{margin:0;line-height:1.7;color:var(--mist)}
+
+@media (max-width:720px){
+  #title{align-items:flex-end;justify-content:center;background:linear-gradient(0deg,rgba(3,20,31,.85) 0%,rgba(3,20,31,.4) 55%,rgba(3,20,31,0) 75%)}
+  #title .panel{margin-left:0;max-height:66%;padding:18px 16px}
+  h1{font-size:48px}
+  .score{font-size:38px}
+  #sonar{width:112px;height:112px}
+  .hud-bl{display:none}
+  .warn{top:calc(96px + env(safe-area-inset-top,0px));font-size:16px}
+  .toast{top:calc(140px + env(safe-area-inset-top,0px));font-size:15px}
+  .dex li{grid-template-columns:44px minmax(0,1fr)}
+  .dex img{width:44px;height:44px}
+  #overScore{font-size:52px}
+  .over-head{grid-template-columns:76px minmax(0,1fr)}
+  .over-head img{width:76px;height:76px}
+}
+@media (prefers-reduced-motion:reduce){
+  .warn,.mk-ring{animation:none}
+  .pop{animation-duration:.6s}
+}
+</style>
+
+<div id="app">
+  <canvas id="gl" aria-label="マカローが泳ぐ大海"></canvas>
+  <div id="vignette"></div>
+  <div id="markers"></div>
+  <div id="popups"></div>
+
+  <div id="hud" hidden>
+    <div class="hud-tl">
+      <div class="label">Score</div>
+      <div id="score" class="score">0</div>
+      <div id="tally" class="tally">小魚 0匹 ・ イカ 0杯</div>
+    </div>
+    <div class="hud-tr">
+      <div class="stat"><span class="label">Time</span><span id="time" class="num">00:00</span></div>
+      <div class="stat"><span class="label">Best</span><span id="best" class="num">0</span></div>
+      <div class="stat"><span class="label">Lv</span><span id="level" class="num">1</span></div>
+      <div class="btns">
+        <button id="pauseBtn" class="icon-btn" type="button" aria-label="一時停止"><svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><rect x="4" y="3" width="4" height="14" rx="1.2"/><rect x="12" y="3" width="4" height="14" rx="1.2"/></svg></button>
+        <button id="muteBtn" class="icon-btn" type="button" aria-label="サウンドのオン・オフ" aria-pressed="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h3l4-3.5v11L6 12H3z" fill="currentColor"/><path id="muteWave" d="M13.5 7a4 4 0 0 1 0 6M15.8 4.8a7 7 0 0 1 0 10.4"/><path id="muteX" d="M13.5 7.5l5 5M18.5 7.5l-5 5" style="display:none"/></svg></button>
+      </div>
+    </div>
+    <div class="hud-br">
+      <canvas id="sonar" width="150" height="150" aria-label="ソナー"></canvas>
+      <div class="depth"><span class="lbl">水深</span><span id="depth" class="num">24</span><span class="unit">m</span></div>
+    </div>
+    <p class="hud-bl" id="hint"></p>
+    <div id="warn" class="warn" hidden></div>
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+  <section id="title" class="overlay" aria-label="タイトル">
+    <div class="panel">
+      <div class="title-head">
+        <p class="eyebrow">人面魚サバイバル</p>
+        <h1>マカロー</h1>
+      </div>
+      <p class="lede">大海に放り出された人面魚マカロー。小魚とイカを食べて点を稼ぎ、タコ・クエ・サメ・クジラ、そしてダイバーから逃げ続けよう。一度でも食べられたら終わり。</p>
+      <div class="start-row">
+        <button id="startBtn" class="btn primary" type="button">泳ぎだす</button>
+        <p class="best-line">自己ベスト <span id="bestTitle" class="num">0</span> 点</p>
+      </div>
+      <h2>海の生きもの図鑑</h2>
+      <ul class="dex" id="dex"></ul>
+      <h2>操作</h2>
+      <dl class="keys" id="keys"></dl>
+    </div>
+  </section>
+
+  <section id="pauseOv" class="overlay" hidden aria-label="一時停止">
+    <div class="panel">
+      <h2>ひと休み中</h2>
+      <p class="small">P か Esc で再開します。</p>
+      <div class="row">
+        <button id="resumeBtn" class="btn primary" type="button">再開する</button>
+        <button id="quitBtn" class="btn ghost" type="button">図鑑にもどる</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="over" class="overlay" hidden aria-label="ゲームオーバー">
+    <div class="panel">
+      <p class="eyebrow" id="overCause">サメに食べられた</p>
+      <div class="over-head">
+        <img id="overImg" alt="">
+        <div>
+          <div class="label">Score</div>
+          <div id="overScore" class="score">0</div>
+          <div id="overNew" class="newbest" hidden>自己ベスト更新！</div>
+        </div>
+      </div>
+      <dl class="result">
+        <div><dt>生存時間</dt><dd id="rTime">00:00</dd></div>
+        <div><dt>自己ベスト</dt><dd id="rBest">0</dd></div>
+        <div><dt>食べた小魚</dt><dd id="rFish">0匹</dd></div>
+        <div><dt>食べたイカ</dt><dd id="rSquid">0杯</dd></div>
+      </dl>
+      <div class="row">
+        <button id="retryBtn" class="btn primary" type="button">もう一度泳ぐ</button>
+        <button id="toTitleBtn" class="btn ghost" type="button">図鑑にもどる</button>
+      </div>
+      <p class="small" id="retryHint">Enter でもう一度</p>
+    </div>
+  </section>
+
+  <section id="fail" class="overlay" hidden>
+    <div class="panel">
+      <h2>3D表示を開始できませんでした</h2>
+      <p>このブラウザではWebGLが使えないようです。最新のChrome・Edge・Safariで開き直してください。</p>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+if(!window.THREE){ $('fail').hidden=false; $('title').hidden=true; return; }
+
+/* ================= helpers ================= */
+const TAU=Math.PI*2;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const randi=(a,b)=>Math.floor(rand(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const damp=(a,b,k,dt)=>lerp(a,b,1-Math.exp(-k*dt));
+const smooth=(e0,e1,x)=>{const t=clamp((x-e0)/(e1-e0),0,1);return t*t*(3-2*t);};
+const angDiff=(a,b)=>{let d=(b-a)%TAU;if(d>Math.PI)d-=TAU;if(d<-Math.PI)d+=TAU;return d;};
+const easeIO=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const fmtTime=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function hexA(hex,a){const c=new THREE.Color(hex);return `rgba(${Math.round(c.r*255)},${Math.round(c.g*255)},${Math.round(c.b*255)},${a})`;}
+function mkCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+function ell(g,x,y,rx,ry,rot){g.beginPath();g.ellipse(x,y,Math.max(rx,.1),Math.max(ry,.1),rot||0,0,TAU);}
+function fwdVec(yaw,pitch,out){const cp=Math.cos(pitch);return out.set(Math.sin(yaw)*cp,Math.sin(pitch),Math.cos(yaw)*cp);}
+const V1=new THREE.Vector3(),V2=new THREE.Vector3(),V3=new THREE.Vector3(),V4=new THREE.Vector3(),V5=new THREE.Vector3(),V6=new THREE.Vector3();
+const ORIGIN=new THREE.Vector3(0,-24,0);
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL={kelp:cssVar('--kelp')||'#8fd8c2',danger:cssVar('--danger')||'#ff5b6b',diver:cssVar('--diver')||'#ffd34d',makaro:cssVar('--makaro')||'#ffa43a',foam:cssVar('--foam')||'#e6f7f2'};
+const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
+
+/* ================= world ================= */
+const WORLD_R=250, SURF=-1.2;
+function floorY(x,z){return -72+7*Math.sin(x*0.017+1.3)*Math.cos(z*0.021)+3.6*Math.sin(x*0.049+z*0.041)+1.6*Math.cos(z*0.093-x*0.031);}
+
+/* ================= renderer ================= */
+let renderer;
+try{ renderer=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true,alpha:true,powerPreference:'high-performance'}); }
+catch(err){ $('fail').hidden=false; $('title').hidden=true; return; }
+const DPR=Math.min(window.devicePixelRatio||1,1.75);
+renderer.setPixelRatio(DPR);
+const scene=new THREE.Scene();
+const fogCol=new THREE.Color(0x0f5f78);
+scene.fog=new THREE.FogExp2(0x0f5f78,0.017);
+scene.fog.color=fogCol; scene.background=fogCol;
+const camera=new THREE.PerspectiveCamera(60,1,0.1,420);
+const hemi=new THREE.HemisphereLight(0xa8ecff,0x0b2532,1.0); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xe8fbff,0.85); sun.position.set(40,120,25); scene.add(sun);
+scene.add(new THREE.AmbientLight(0x3a6676,0.35));
+
+const U={uTime:{value:0}};
+const CAUSTIC=`
+uniform float uTime; varying vec3 vWPos; varying float vUp;
+float caustic(vec2 p,float t){
+  vec2 q=p*0.085;
+  q+=0.55*vec2(sin(q.y*2.1+t*0.75),sin(q.x*1.9-t*0.62));
+  q+=0.35*vec2(sin(q.y*3.4-t*0.9+1.7),sin(q.x*3.1+t*1.05));
+  float s=sin(q.x*3.2)+sin(q.y*3.2);
+  return pow(clamp(1.0-abs(s)*0.5,0.0,1.0),7.0);
+}`;
+function addCaustics(mat,strength){
+  mat.onBeforeCompile=sh=>{
+    sh.uniforms.uTime=U.uTime;
+    sh.vertexShader='varying vec3 vWPos;\nvarying float vUp;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWPos=(modelMatrix*vec4(transformed,1.0)).xyz;\nvUp=normalize(mat3(modelMatrix)*objectNormal).y;');
+    sh.fragmentShader=CAUSTIC+'\n'+sh.fragmentShader.replace('#include <fog_fragment>','gl_FragColor.rgb+=vec3(0.55,0.9,0.95)*caustic(vWPos.xz,uTime)*'+strength.toFixed(2)+'*smoothstep(0.2,0.9,vUp);\n#include <fog_fragment>');
+  };
+}
+function mergeGeos(geos,names){
+  const list=geos.map(g=>g.index?g.toNonIndexed():g);
+  let total=0; list.forEach(g=>total+=g.attributes.position.count);
+  const out=new THREE.BufferGeometry();
+  for(const n of names){
+    const size=list[0].attributes[n].itemSize; const arr=new Float32Array(total*size); let o=0;
+    for(const g of list){ arr.set(g.attributes[n].array,o); o+=g.attributes[n].array.length; }
+    out.setAttribute(n,new THREE.BufferAttribute(arr,size));
+  }
+  out.computeBoundingSphere(); return out;
+}
+function paint(g,hex,jit){
+  const p=g.attributes.position,n=p.count,arr=new Float32Array(n*3),c=new THREE.Color(hex);
+  for(let i=0;i<n;i++){ const k=1+jit*Math.sin(p.getX(i)*1.7+p.getY(i)*2.3+p.getZ(i)*1.1); arr[i*3]=c.r*k; arr[i*3+1]=c.g*k; arr[i*3+2]=c.b*k; }
+  g.setAttribute('color',new THREE.BufferAttribute(arr,3));
+}
+function randomPointAround(cx,cz,rMin,rMax){
+  for(let k=0;k<24;k++){ const a=rand(0,TAU),r=rand(rMin,rMax),x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r; if(Math.hypot(x,z)<WORLD_R-12) return [x,z]; }
+  const a=rand(0,TAU),r=rand(0,WORLD_R*0.6); return [Math.cos(a)*r,Math.sin(a)*r];
+}
+
+/* ---------- seabed ---------- */
+(function buildSeabed(){
+  const size=WORLD_R*2+280,seg=150;
+  const geo=new THREE.PlaneGeometry(size,size,seg,seg); geo.rotateX(-Math.PI/2);
+  const pos=geo.attributes.position,col=new Float32Array(pos.count*3);
+  const sandA=new THREE.Color(0xcdb88c),sandB=new THREE.Color(0x857f66),dark=new THREE.Color(0x46524c),c=new THREE.Color();
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i),z=pos.getZ(i),y=floorY(x,z); pos.setY(i,y);
+    const n=0.5+0.5*Math.sin(x*0.13+Math.cos(z*0.11)*2)*Math.cos(z*0.07);
+    c.copy(sandB).lerp(sandA,smooth(-84,-60,y)*0.7+n*0.3); if(n<0.22) c.lerp(dark,0.35);
+    col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3)); geo.computeVertexNormals();
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true}); addCaustics(mat,0.5);
+  scene.add(new THREE.Mesh(geo,mat));
+})();
+
+/* ---------- rocks, pillars, sponges ---------- */
+const ROCKS=[], ROCK_SPOTS=[];
+(function buildRocks(){
+  const geos=[],cols=[0x56605f,0x5f5849,0x404b50,0x6b6352];
+  const rockGeo=(r,seed)=>{ const g=new THREE.IcosahedronGeometry(1,1),p=g.attributes.position;
+    for(let i=0;i<p.count;i++){ const x=p.getX(i),y=p.getY(i),z=p.getZ(i); const d=1+0.22*Math.sin(x*3.1+seed)*Math.sin(y*2.7+seed*1.3)+0.12*Math.sin(z*5.3+seed*2.1); p.setXYZ(i,x*d*r,y*d*r*0.75,z*d*r); }
+    g.computeVertexNormals(); return g; };
+  const place=(x,y,z,r,hex)=>{ const g=rockGeo(r,rand(0,100)); paint(g,hex,0.12); g.translate(x,y,z); geos.push(g); ROCKS.push({x,y,z,r:r*0.95}); };
+  const sponges=(x,z)=>{ const hexes=[0xe8743b,0xb35bd1,0xf2c14e,0xe0566f,0x5fd3c4]; const hex=pick(hexes); const n=randi(3,5);
+    for(let i=0;i<n;i++){ const h=rand(0.8,2.6),px=x+rand(-3,3),pz=z+rand(-3,3); const g=new THREE.CylinderGeometry(rand(0.22,0.38),rand(0.35,0.5),h,8); paint(g,hex,0.08); g.translate(px,floorY(px,pz)+h/2-0.1,pz); geos.push(g); } };
+  for(let n=0;n<80;n++){ const [x,z]=randomPointAround(0,0,32,WORLD_R-8); const r=rand(1.8,5.5); place(x,floorY(x,z)+r*0.35,z,r,pick(cols)); ROCK_SPOTS.push({x,z}); if(Math.random()<0.5) sponges(x+rand(-5,5),z+rand(-5,5)); }
+  for(let i=0;i<11;i++){ const [x,z]=randomPointAround(0,0,48,WORLD_R-20); let y=floorY(x,z),r=rand(7,10); const lv=randi(3,5);
+    for(let k=0;k<lv;k++){ place(x+rand(-2,2),y+r*0.5,z+rand(-2,2),r,pick(cols)); y+=r*1.05; r*=rand(0.72,0.86); }
+    ROCK_SPOTS.push({x,z}); sponges(x+9,z); sponges(x-8,z+4); }
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true}); addCaustics(mat,0.35);
+  scene.add(new THREE.Mesh(mergeGeos(geos,['position','normal','color']),mat));
+})();
+function pushOutRocks(p,r){
+  for(const k of ROCKS){ const dx=p.x-k.x,dz=p.z-k.z,m=k.r+r; if(dx>m||dx<-m||dz>m||dz<-m) continue;
+    const dy=(p.y-k.y)/0.75,L=Math.hypot(dx,dy,dz); if(L<m&&L>1e-4){ const s=(m-L)/L; p.x+=dx*s; p.y+=dy*s*0.75; p.z+=dz*s; } }
+}
+
+/* ---------- seaweed & kelp (merged, sway in shader) ---------- */
+(function buildWeeds(){
+  const geos=[],c=new THREE.Color();
+  const strand=(x,z,h,w,c1,c2)=>{ const phase=rand(0,TAU),base=floorY(x,z)-0.3,rot0=rand(0,Math.PI);
+    for(const r of [0,Math.PI/2]){ const g=new THREE.PlaneGeometry(w,h,1,Math.max(3,Math.round(h/2))); g.translate(0,h/2,0); g.rotateY(rot0+r);
+      const p=g.attributes.position,n=p.count,col=new Float32Array(n*3),sw=new Float32Array(n*2);
+      for(let i=0;i<n;i++){ const yy=p.getY(i); c.copy(c1).lerp(c2,yy/h); col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b; sw[i*2]=phase; sw[i*2+1]=yy; }
+      g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setAttribute('aSway',new THREE.BufferAttribute(sw,2)); g.translate(x,base,z); geos.push(g); } };
+  const g1=new THREE.Color(0x2f5e2c),g2=new THREE.Color(0x8fbf4a),k1=new THREE.Color(0x3b4a1c),k2=new THREE.Color(0xa58a2f);
+  for(let p=0;p<60;p++){ const [cx,cz]=randomPointAround(0,0,6,WORLD_R-6); for(let k=0;k<7;k++) strand(cx+rand(-4,4),cz+rand(-4,4),rand(1.4,4.2),rand(0.25,0.45),g1,g2); }
+  for(let f=0;f<10;f++){ const [cx,cz]=randomPointAround(0,0,40,WORLD_R-15); for(let k=0;k<9;k++) strand(cx+rand(-9,9),cz+rand(-9,9),rand(26,50),rand(0.9,1.4),k1,k2); }
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uTime=U.uTime;
+    sh.vertexShader='attribute vec2 aSway;\nuniform float uTime;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\nfloat k=aSway.y; float amp=0.3*sqrt(max(k,0.0));\ntransformed.x+=sin(uTime*0.9+aSway.x+k*0.12)*amp;\ntransformed.z+=cos(uTime*0.7+aSway.x*1.7+k*0.09)*amp*0.8;'); };
+  const mesh=new THREE.Mesh(mergeGeos(geos,['position','normal','color','aSway']),mat); mesh.frustumCulled=false; scene.add(mesh);
+})();
+
+/* ---------- surface, light shafts, marine snow ---------- */
+let surfTex;
+(function buildSurface(){
+  const c=mkCanvas(256,256),g=c.getContext('2d');
+  g.strokeStyle='rgba(255,255,255,0.6)'; g.lineCap='round';
+  for(let i=0;i<70;i++){ const x=rand(0,256),y=rand(0,256),w=rand(1,3); g.lineWidth=w;
+    for(const ox of [-256,0,256]) for(const oy of [-256,0,256]){ g.beginPath(); g.moveTo(x+ox,y+oy); g.bezierCurveTo(x+ox+rand(-20,20),y+oy+rand(10,30),x+ox+rand(10,40),y+oy+rand(-10,10),x+ox+rand(20,50),y+oy+rand(-20,20)); g.stroke(); } }
+  surfTex=new THREE.CanvasTexture(c); surfTex.wrapS=surfTex.wrapT=THREE.RepeatWrapping; surfTex.repeat.set(70,70);
+  const geo=new THREE.PlaneGeometry(1400,1400); geo.rotateX(Math.PI/2);
+  const m1=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x6fdcef,transparent:true,opacity:0.45,depthWrite:false,side:THREE.DoubleSide}));
+  const m2=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:surfTex,color:0xd8fbff,transparent:true,opacity:0.7,depthWrite:false,side:THREE.DoubleSide}));
+  m1.position.y=0.05; m2.position.y=0; scene.add(m1,m2);
+})();
+const rays=[];
+(function buildRays(){
+  const c=mkCanvas(64,256),g=c.getContext('2d'),img=g.createImageData(64,256);
+  for(let y=0;y<256;y++) for(let x=0;x<64;x++){ const vx=(x-31.5)/32,a=Math.exp(-vx*vx*5)*Math.pow(1-y/255,1.6),i=(y*64+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=255; img.data[i+3]=a*255; }
+  g.putImageData(img,0,0); const tex=new THREE.CanvasTexture(c); const geo=new THREE.PlaneGeometry(1,1);
+  for(let i=0;i<16;i++){ const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:tex,color:0xc9f7ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
+    m.scale.set(rand(3,9),95,1); m.rotation.order='YXZ'; m.userData={ox:rand(0,150),oz:rand(0,150),base:rand(0.06,0.14),tilt:rand(-0.18,0.06),ph:rand(0,TAU)}; scene.add(m); rays.push(m); }
+})();
+function dotTex(ring){ const c=mkCanvas(64,64),g=c.getContext('2d');
+  if(ring){ g.strokeStyle='rgba(255,255,255,0.9)'; g.lineWidth=5; g.beginPath(); g.arc(32,32,24,0,TAU); g.stroke(); g.fillStyle='rgba(255,255,255,0.15)'; g.fill(); g.fillStyle='rgba(255,255,255,0.95)'; ell(g,24,22,6,4); g.fill(); }
+  else { const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.4,'rgba(255,255,255,0.6)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64); }
+  return new THREE.CanvasTexture(c); }
+const SNOW_N=900,SNOW_B=80,snowBase=new Float32Array(SNOW_N*3);
+for(let i=0;i<SNOW_N*3;i++) snowBase[i]=rand(0,SNOW_B);
+const snowGeo=new THREE.BufferGeometry(); snowGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(SNOW_N*3),3));
+const snow=new THREE.Points(snowGeo,new THREE.PointsMaterial({size:0.22,map:dotTex(false),color:0xd6f5f0,transparent:true,opacity:0.6,depthWrite:false})); snow.frustumCulled=false; scene.add(snow);
+const BUB_N=260,bubPos=new Float32Array(BUB_N*3),bubVel=new Float32Array(BUB_N*3),bubLife=new Float32Array(BUB_N); let bubNext=0;
+for(let i=0;i<BUB_N;i++) bubPos[i*3+1]=-9999;
+const bubGeo=new THREE.BufferGeometry(); bubGeo.setAttribute('position',new THREE.BufferAttribute(bubPos,3));
+const bubbles=new THREE.Points(bubGeo,new THREE.PointsMaterial({size:0.32,map:dotTex(true),color:0xe8fbff,transparent:true,opacity:0.85,depthWrite:false})); bubbles.frustumCulled=false; scene.add(bubbles);
+function spawnBubble(x,y,z,vx,vy,vz,life){ const i=bubNext; bubNext=(bubNext+1)%BUB_N; bubPos[i*3]=x;bubPos[i*3+1]=y;bubPos[i*3+2]=z; bubVel[i*3]=vx;bubVel[i*3+1]=vy;bubVel[i*3+2]=vz; bubLife[i]=life; }
+function burst(p,n,spread){ for(let k=0;k<n;k++) spawnBubble(p.x+rand(-.3,.3),p.y+rand(-.3,.3),p.z+rand(-.3,.3),rand(-spread,spread),rand(0.5,2.5),rand(-spread,spread),rand(1.2,2.6)); }
+const inkTex=dotTex(false),inks=[];
+for(let i=0;i<24;i++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:inkTex,color:0x0a1014,transparent:true,opacity:0,depthWrite:false})); s.visible=false; s.userData={life:0}; scene.add(s); inks.push(s); }
+let inkNext=0;
+function spawnInk(p){ for(let k=0;k<5;k++){ const s=inks[inkNext]; inkNext=(inkNext+1)%inks.length; s.position.set(p.x+rand(-.6,.6),p.y+rand(-.6,.6),p.z+rand(-.6,.6)); s.userData.life=2.4; s.userData.v=new THREE.Vector3(rand(-.4,.4),rand(-.2,.4),rand(-.4,.4)); s.visible=true; } }
+
+/* ================= textures for creatures ================= */
+const FACE_DEF={skin:'#efc4a2',eyeGap:34,eyeY:110,eyeW:20,eyeH:15,iris:9,irisColor:'#3a2618',brow:0,browW:7,browLift:11,browColor:'#2e1d14',mouth:'smile',mouthY:180,mouthW:30,lips:'#b4554a',lid:0,eyes:'open',noseY:148};
+function drawMouth(g,o,cx){
+  const y=o.mouthY,w=o.mouthW; g.lineCap='round'; g.lineJoin='round';
+  switch(o.mouth){
+    case 'smile': g.strokeStyle=o.lips; g.lineWidth=7; g.beginPath(); g.moveTo(cx-w,y-5); g.quadraticCurveTo(cx,y+15,cx+w,y-5); g.stroke();
+      g.strokeStyle='rgba(55,18,12,.7)'; g.lineWidth=2.5; g.beginPath(); g.moveTo(cx-w,y-5); g.quadraticCurveTo(cx,y+13,cx+w,y-5); g.stroke(); break;
+    case 'flat': g.strokeStyle=o.lips; g.lineWidth=7; g.beginPath(); g.moveTo(cx-w*.8,y); g.lineTo(cx+w*.8,y+1); g.stroke();
+      g.strokeStyle='rgba(55,18,12,.7)'; g.lineWidth=2.5; g.beginPath(); g.moveTo(cx-w*.8,y); g.lineTo(cx+w*.8,y+1); g.stroke(); break;
+    case 'frown': g.strokeStyle=o.lips; g.lineWidth=10; g.beginPath(); g.moveTo(cx-w,y+9); g.quadraticCurveTo(cx,y-14,cx+w,y+9); g.stroke();
+      g.strokeStyle='rgba(40,12,8,.75)'; g.lineWidth=3; g.beginPath(); g.moveTo(cx-w,y+9); g.quadraticCurveTo(cx,y-12,cx+w,y+9); g.stroke(); break;
+    case 'smirk': g.strokeStyle=o.lips; g.lineWidth=7; g.beginPath(); g.moveTo(cx-w*.8,y+2); g.quadraticCurveTo(cx+4,y+9,cx+w,y-11); g.stroke(); break;
+    case 'o': g.fillStyle=o.lips; ell(g,cx,y,13,15); g.fill(); g.fillStyle='#2a0d0b'; ell(g,cx,y+1,8,10); g.fill(); break;
+    case 'pucker': g.fillStyle=o.lips; ell(g,cx,y,18,15); g.fill(); g.strokeStyle='rgba(95,15,18,.55)'; g.lineWidth=2;
+      for(let i=0;i<10;i++){ const a=i/10*TAU; g.beginPath(); g.moveTo(cx+Math.cos(a)*9,y+Math.sin(a)*8); g.lineTo(cx+Math.cos(a)*16,y+Math.sin(a)*13); g.stroke(); }
+      g.fillStyle='#3a0e0c'; ell(g,cx,y+1,5.5,4.5); g.fill(); g.fillStyle='rgba(255,255,255,.4)'; ell(g,cx-6,y-7,6,3); g.fill(); break;
+    case 'grin': g.fillStyle='#3a0f0c'; g.beginPath(); g.moveTo(cx-w,y-7); g.quadraticCurveTo(cx,y+36,cx+w,y-7); g.quadraticCurveTo(cx,y+1,cx-w,y-7); g.fill();
+      g.fillStyle='#fffaf0'; g.beginPath(); g.moveTo(cx-w*.86,y-5); g.quadraticCurveTo(cx,y+5,cx+w*.86,y-5); g.quadraticCurveTo(cx,y+12,cx-w*.86,y-5); g.fill();
+      g.fillStyle='#e0566f'; ell(g,cx,y+16,w*.38,5); g.fill();
+      g.strokeStyle=o.lips; g.lineWidth=4; g.beginPath(); g.moveTo(cx-w,y-7); g.quadraticCurveTo(cx,y+36,cx+w,y-7); g.stroke(); break;
+    case 'chomp': g.fillStyle=o.lips; ell(g,cx,y+4,w+7,31); g.fill(); g.fillStyle='#2a0806'; ell(g,cx,y+4,w,25); g.fill();
+      g.fillStyle='#d9506a'; ell(g,cx,y+19,w*.62,9); g.fill(); g.fillStyle='#fffaf0'; g.fillRect(cx-w*.68,y-20,w*1.36,7); break;
+    case 'wavy': g.strokeStyle=o.lips; g.lineWidth=6; g.beginPath(); for(let i=0;i<=8;i++){ const px=cx-w+i*(w*2/8),py=y+(i%2?-5:5); if(i) g.lineTo(px,py); else g.moveTo(px,py); } g.stroke(); break;
+  }
+}
+function drawFace(opt){
+  const o=Object.assign({},FACE_DEF,opt),S=256,c=mkCanvas(S,S),g=c.getContext('2d'),cx=128;
+  let gr=g.createRadialGradient(cx,134,20,cx,134,124);
+  gr.addColorStop(0,hexA(o.skin,1)); gr.addColorStop(0.66,hexA(o.skin,1)); gr.addColorStop(1,hexA(o.skin,0));
+  g.fillStyle=gr; g.fillRect(0,0,S,S);
+  gr=g.createRadialGradient(cx,122,40,cx,140,118); gr.addColorStop(0,'rgba(70,30,20,0)'); gr.addColorStop(0.72,'rgba(70,30,20,0)'); gr.addColorStop(0.92,'rgba(70,30,20,0.16)'); gr.addColorStop(1,'rgba(70,30,20,0)');
+  g.fillStyle=gr; g.fillRect(0,0,S,S);
+  if(o.blush) for(const s of [-1,1]){ gr=g.createRadialGradient(cx+s*54,152,2,cx+s*54,152,24); gr.addColorStop(0,'rgba(240,90,100,0.45)'); gr.addColorStop(1,'rgba(240,90,100,0)'); g.fillStyle=gr; g.fillRect(0,0,S,S); }
+  if(o.wrinkles){ g.strokeStyle='rgba(90,45,30,0.35)'; g.lineWidth=2.5; for(let i=0;i<3;i++){ g.beginPath(); g.moveTo(cx-34+i*3,62+i*9); g.quadraticCurveTo(cx,56+i*9,cx+34-i*3,62+i*9); g.stroke(); } }
+  if(o.shadow) for(const s of [-1,1]){ g.fillStyle=hexA(o.shadow,0.45); ell(g,cx+s*o.eyeGap,o.eyeY-6,o.eyeW+6,o.eyeH+4); g.fill(); }
+  for(const s of [-1,1]){
+    const x=cx+s*o.eyeGap,y=o.eyeY;
+    g.fillStyle='rgba(80,35,25,0.16)'; ell(g,x,y+2,o.eyeW+6,o.eyeH+6); g.fill();
+    if(o.eyes==='closed'){ g.strokeStyle='#2a1912'; g.lineWidth=5.5; g.lineCap='round'; g.beginPath(); g.arc(x,y+9,o.eyeW*.85,Math.PI*1.15,Math.PI*1.85); g.stroke(); }
+    else{
+      g.save(); ell(g,x,y,o.eyeW,o.eyeH); g.clip();
+      g.fillStyle='#fbf7ef'; g.fillRect(x-o.eyeW-2,y-o.eyeH-2,o.eyeW*2+4,o.eyeH*2+4);
+      g.fillStyle=o.irisColor; ell(g,x,y+1,o.iris,o.iris); g.fill();
+      g.fillStyle='#0d0705'; ell(g,x,y+1,o.iris*.5,o.iris*.5); g.fill();
+      g.fillStyle='rgba(255,255,255,.95)'; ell(g,x-o.iris*.35,y-o.iris*.3,o.iris*.3,o.iris*.3); g.fill();
+      if(o.lid>0){ g.fillStyle=o.skin; g.fillRect(x-o.eyeW-2,y-o.eyeH-2,o.eyeW*2+4,(o.eyeH*2+4)*o.lid); }
+      g.restore();
+      g.strokeStyle='#24150f'; g.lineWidth=3.4; g.lineCap='round';
+      if(o.lid>0){ const ly=y-o.eyeH-2+(o.eyeH*2+4)*o.lid,t=clamp((ly-y)/o.eyeH,-1,1),hw=o.eyeW*Math.sqrt(1-t*t); g.beginPath(); g.moveTo(x-hw,ly); g.lineTo(x+hw,ly); g.stroke(); }
+      else{ g.beginPath(); g.ellipse(x,y,o.eyeW,o.eyeH,0,Math.PI*1.05,Math.PI*1.95); g.stroke(); }
+      if(o.lashes){ g.lineWidth=2.4; for(let k=0;k<3;k++){ const a=s>0?Math.PI*(1.7+0.1*k):Math.PI*(1.3-0.1*k),px=x+o.eyeW*Math.cos(a),py=y+o.eyeH*Math.sin(a); g.beginPath(); g.moveTo(px,py); g.lineTo(px+Math.cos(a)*8,py+Math.sin(a)*8); g.stroke(); } }
+    }
+    const by=y-o.eyeH-o.browLift,inX=x-s*o.eyeW*.85,outX=x+s*o.eyeW*1.05,inY=by+o.brow*9,outY=by-o.brow*4;
+    g.strokeStyle=o.browColor; g.lineWidth=o.browW; g.lineCap='round';
+    g.beginPath(); g.moveTo(inX,inY); g.quadraticCurveTo((inX+outX)/2,Math.min(inY,outY)-5,outX,outY); g.stroke();
+  }
+  if(o.glasses){ g.strokeStyle='#26262c'; g.lineWidth=4; for(const s of [-1,1]){ ell(g,cx+s*o.eyeGap,o.eyeY,o.eyeW+9,o.eyeH+9); g.stroke(); }
+    g.beginPath(); g.moveTo(cx-o.eyeGap+o.eyeW+9,o.eyeY-2); g.quadraticCurveTo(cx,o.eyeY-10,cx+o.eyeGap-o.eyeW-9,o.eyeY-2); g.stroke(); }
+  const ny=o.noseY;
+  g.strokeStyle='rgba(95,45,30,0.55)'; g.lineWidth=3; g.lineCap='round';
+  g.beginPath(); g.moveTo(cx-3,o.eyeY+10); g.quadraticCurveTo(cx-10,ny-6,cx-11,ny); g.stroke();
+  gr=g.createRadialGradient(cx,ny+2,2,cx,ny+2,16); gr.addColorStop(0,'rgba(95,45,30,0.25)'); gr.addColorStop(1,'rgba(95,45,30,0)'); g.fillStyle=gr; g.fillRect(cx-20,ny-14,40,32);
+  g.fillStyle='rgba(60,25,18,0.75)'; ell(g,cx-7,ny+3,3.4,2.2); g.fill(); ell(g,cx+7,ny+3,3.4,2.2); g.fill();
+  if(o.mustache){ g.fillStyle=o.browColor; g.beginPath(); g.moveTo(cx,ny+10); g.quadraticCurveTo(cx-18,ny+6,cx-33,ny+21); g.quadraticCurveTo(cx-16,ny+16,cx,ny+16); g.quadraticCurveTo(cx+16,ny+16,cx+33,ny+21); g.quadraticCurveTo(cx+18,ny+6,cx,ny+10); g.fill(); }
+  drawMouth(g,o,cx);
+  if(o.stubble){ g.fillStyle='rgba(45,28,22,0.38)'; for(let i=0;i<220;i++){ const a=rand(0.1*Math.PI,0.9*Math.PI),r=rand(46,96),px=cx+Math.cos(a)*r*.9,py=120+Math.sin(a)*r*.9; if(py<162) continue; g.fillRect(px,py,1.7,1.7); } }
+  if(o.jowls){ g.strokeStyle='rgba(80,35,25,0.42)'; g.lineWidth=3; for(const s of [-1,1]){ g.beginPath(); g.moveTo(cx+s*30,ny+4); g.quadraticCurveTo(cx+s*48,o.mouthY+4,cx+s*42,o.mouthY+28); g.stroke(); } }
+  if(o.sweat){ g.fillStyle='rgba(190,235,255,0.95)'; const sx=cx+70,sy=80; g.beginPath(); g.moveTo(sx,sy-15); g.quadraticCurveTo(sx+10,sy+2,sx,sy+7); g.quadraticCurveTo(sx-10,sy+2,sx,sy-15); g.fill(); }
+  return c;
+}
+function bodyTex(back,side,belly,o){
+  o=o||{}; const W=128,H=128,c=mkCanvas(W,H),g=c.getContext('2d');
+  const cb=new THREE.Color(back),cs=new THREE.Color(side),cl=new THREE.Color(belly),t=new THREE.Color(),sh=o.sharp||1;
+  for(let x=0;x<W;x++){ const top=-Math.cos(TAU*(x+0.5)/W); if(top>=0) t.copy(cs).lerp(cb,smooth(0,sh,top)); else t.copy(cs).lerp(cl,smooth(0,sh,-top)); g.fillStyle='#'+t.getHexString(); g.fillRect(x,0,1,H); }
+  if(o.pattern) o.pattern(g,W,H);
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=THREE.RepeatWrapping; return tex;
+}
+function spotTex(base,spot,n,r0,r1){ const c=mkCanvas(128,128),g=c.getContext('2d'); g.fillStyle=base; g.fillRect(0,0,128,128);
+  for(let i=0;i<n;i++){ g.fillStyle=hexA(spot,rand(0.25,0.6)); ell(g,rand(0,128),rand(0,128),rand(r0,r1),rand(r0,r1)); g.fill(); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+
+const FACES={
+  makaro:{skin:'#f7caa5',eyeGap:37,eyeY:106,eyeW:23,eyeH:18,iris:10.5,irisColor:'#3b2414',brow:0.2,browW:10,browLift:11,browColor:'#2a170c',mouth:'smile',mouthW:32,mouthY:178,blush:true,lips:'#c4544a'},
+  squid:{skin:'#f8e6e4',eyeGap:35,eyeW:22,eyeH:18,iris:8,irisColor:'#2b3f5c',brow:-0.6,browW:5,browLift:14,browColor:'#6b4a48',mouth:'o',lashes:true,blush:true},
+  octo:{skin:'#ef927c',eyeGap:34,eyeW:19,eyeH:13,iris:8,lid:0.42,brow:0.45,browW:10,browColor:'#5a1f16',mouth:'pucker',mouthY:176,blush:true,lips:'#c2343a'},
+  kue:{skin:'#b78a66',eyeGap:38,eyeY:104,eyeW:17,eyeH:11,iris:7,irisColor:'#2a1a10',lid:0.32,brow:0.85,browW:13,browLift:8,browColor:'#24150c',mouth:'frown',mouthW:46,mouthY:184,lips:'#6e3a30',jowls:true,stubble:true,wrinkles:true},
+};
+const MAKARO_EXPR={normal:{},chomp:{mouth:'chomp',iris:9},happy:{eyes:'closed',mouth:'grin'},scared:{brow:-0.9,browLift:18,iris:5.5,eyeH:20,mouth:'wavy',sweat:true}};
+const FISH_FACES=[
+  {skin:'#efc6a5',glasses:true,mouth:'flat',brow:0.1,mouthW:24},
+  {skin:'#f4c9b4',lashes:true,lips:'#d3253f',mouth:'smile',shadow:'#7b5bc9',brow:-0.15,browW:5},
+  {skin:'#e7b791',lid:0.55,mouth:'o',brow:-0.25},
+  {skin:'#f2d0b5',iris:5.5,eyeH:19,eyeW:21,mouth:'o',brow:-0.7,browLift:18},
+  {skin:'#d9ab86',mouth:'smirk',brow:0.35,stubble:true},
+  {skin:'#eabf9b',mustache:true,mouth:'flat',brow:0.25,wrinkles:true},
+];
+const faceMat=tex=>new THREE.MeshPhongMaterial({map:tex,transparent:true,depthWrite:false,shininess:22,specular:0x222222,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+const ph=o=>new THREE.MeshPhongMaterial(o);
+const DS=THREE.DoubleSide;
+const MAT={};
+MAT.makaroBodyTex=bodyTex('#d4561a','#ff9a3c','#fff0d4',{sharp:0.9,pattern:(g,W,H)=>{
+  g.strokeStyle='rgba(120,40,0,0.2)'; g.lineWidth=1.4; for(let y=6,r=0;y<H;y+=8,r++) for(let x=(r%2)*5;x<W;x+=10){ g.beginPath(); g.arc(x,y,5,0.15*Math.PI,0.85*Math.PI); g.stroke(); }
+  g.fillStyle='rgba(255,226,140,0.6)'; g.fillRect(31,0,3,H); g.fillRect(95,0,3,H); }});
+MAT.fishBody=ph({map:bodyTex('#2b6d93','#93c3d6','#eef6f6',{pattern:(g,W,H)=>{ g.fillStyle='rgba(255,215,94,0.8)'; g.fillRect(36,0,4,H); g.fillRect(88,0,4,H); }}),shininess:70,specular:0x445566});
+MAT.fishFin=ph({color:0xa8d6e6,transparent:true,opacity:0.8,side:DS});
+MAT.fishFaces=FISH_FACES.map(f=>faceMat(new THREE.CanvasTexture(drawFace(f))));
+MAT.squid=ph({map:spotTex('#f1d3cf','#c65a52',150,1.5,4.5),shininess:90,specular:0x664444,emissive:0x1a0808});
+MAT.squidFin=ph({color:0xf3c9c3,transparent:true,opacity:0.85,side:DS});
+MAT.squidFace=faceMat(new THREE.CanvasTexture(drawFace(FACES.squid)));
+MAT.octo=ph({map:spotTex('#d4614a','#9c3a2a',90,3,9),shininess:40});
+MAT.octoFace=faceMat(new THREE.CanvasTexture(drawFace(FACES.octo)));
+MAT.cloth=ph({color:0xf4f1ea,shininess:10});
+MAT.kueBody=ph({map:bodyTex('#4b3424','#7a5a3f','#b39572',{pattern:(g,W,H)=>{
+  g.fillStyle='rgba(30,18,10,0.36)'; for(let i=0;i<6;i++){ const y=12+i*19; g.beginPath(); g.moveTo(0,y); for(let x=0;x<=W;x+=8) g.lineTo(x,y+Math.sin(x*0.1+i)*3); for(let x=W;x>=0;x-=8) g.lineTo(x,y+9+Math.sin(x*0.13+i*2)*3); g.fill(); }
+  for(let i=0;i<60;i++){ g.fillStyle=Math.random()<0.6?'rgba(30,18,10,0.25)':'rgba(230,210,170,0.25)'; ell(g,rand(0,W),rand(0,H),rand(1.5,4),rand(1.5,4)); g.fill(); } }}),shininess:25});
+MAT.kueFin=ph({color:0x5b4030,side:DS});
+MAT.kueFace=faceMat(new THREE.CanvasTexture(drawFace(FACES.kue)));
+MAT.sharkBody=ph({map:bodyTex('#56697a','#6f8494','#eef2f3',{sharp:0.22}),shininess:35});
+MAT.sharkFin=ph({color:0x5d7080,side:DS});
+MAT.dark=ph({color:0x15100f}); MAT.teeth=ph({color:0xf4f1e8}); MAT.eye=ph({color:0x050608,shininess:100,specular:0x888888});
+MAT.whaleBody=ph({map:bodyTex('#344d5e','#4f6d80','#b9c8cf',{sharp:0.5,pattern:(g,W,H)=>{
+  g.fillStyle='rgba(30,45,55,0.4)'; for(let x=0;x<W;x+=3){ const top=-Math.cos(TAU*(x+0.5)/W); if(top<-0.45) g.fillRect(x,0,1,H*0.55); }
+  g.strokeStyle='rgba(15,22,30,0.75)'; g.lineWidth=2.5; for(const x of [28,100]){ g.beginPath(); g.moveTo(x,0); g.quadraticCurveTo(x,H*0.1,x+(x<64?-7:7),H*0.18); g.stroke(); }
+  for(let i=0;i<40;i++){ g.fillStyle='rgba(220,235,240,0.18)'; ell(g,rand(0,W),rand(0,H),rand(1,3),rand(1,3)); g.fill(); } }}),shininess:30});
+MAT.whaleFin=ph({color:0x3f5a6b,side:DS});
+MAT.suit=ph({color:0x1c242c,shininess:60}); MAT.suitAccent=ph({color:0x27b3a2}); MAT.tank=ph({color:0xf2c230,shininess:80});
+MAT.glass=ph({color:0x9fd8ea,shininess:120,specular:0xffffff,emissive:0x0b2a33}); MAT.skin=ph({color:0xe7b591});
+MAT.pole=ph({color:0xb8c2c8}); MAT.net=new THREE.MeshBasicMaterial({color:0xe6f2f0,wireframe:true,transparent:true,opacity:0.55});
+MAT.flipper=ph({color:0xf2c230,side:DS});
+MAT.hair=ph({color:0x2b1b12,shininess:20});
+// マカローの顔写真（目・口の位置を顔テクスチャの配置に合わせて切り抜き済み）
+const MAKARO_PHOTO='data:image/jpeg;base64,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';
+const PHOTO_MASK={cx:128,cy:130,rx:94,ry:118,feather:0.78};
+function star(g,x,y,r){ g.beginPath(); for(let i=0;i<8;i++){ const a=i/8*TAU-Math.PI/2,rr=i%2?r*0.35:r; g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); } g.closePath(); g.fill(); }
+function photoFace(img,expr){
+  const S=384,k=S/256,c=mkCanvas(S,S),g=c.getContext('2d'),M=PHOTO_MASK;
+  g.drawImage(img,0,0,S,S);
+  // 顔の輪郭に沿って楕円でぼかし、体のオレンジになじませる
+  g.globalCompositeOperation='destination-in';
+  g.save(); g.scale(k,k); g.translate(M.cx,M.cy); g.scale(1,M.ry/M.rx);
+  const gr=g.createRadialGradient(0,0,M.rx*M.feather,0,0,M.rx); gr.addColorStop(0,'rgba(0,0,0,1)'); gr.addColorStop(0.5,'rgba(0,0,0,0.6)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr; g.fillRect(-400,-400,800,800); g.restore();
+  g.globalCompositeOperation='source-over';
+  g.save(); g.scale(k,k);
+  if(expr==='chomp'){ const x=126,y=196; g.fillStyle='#a8463f'; ell(g,x,y,34,31); g.fill(); g.fillStyle='#2a0806'; ell(g,x,y,27,25); g.fill();
+    g.fillStyle='#d9506a'; ell(g,x,y+13,17,8); g.fill(); g.save(); ell(g,x,y,27,25); g.clip(); g.fillStyle='#fffaf0'; g.fillRect(x-27,y-25,54,8); g.restore(); }
+  if(expr==='happy'){ for(const bx of [80,178]){ const b=g.createRadialGradient(bx,156,2,bx,156,22); b.addColorStop(0,'rgba(240,80,95,0.5)'); b.addColorStop(1,'rgba(240,80,95,0)'); g.fillStyle=b; g.fillRect(bx-24,132,48,48); }
+    g.fillStyle='rgba(255,236,150,0.95)'; star(g,40,64,12); star(g,216,58,10); star(g,228,86,5); }
+  if(expr==='scared'){ g.globalCompositeOperation='source-atop'; const t=g.createLinearGradient(0,10,0,175); t.addColorStop(0,'rgba(50,80,200,0.62)'); t.addColorStop(1,'rgba(50,80,200,0)'); g.fillStyle=t; g.fillRect(0,0,256,256);
+    g.globalCompositeOperation='source-over'; g.strokeStyle='rgba(30,40,110,0.7)'; g.lineWidth=2.6; g.lineCap='round';
+    for(let i=0;i<8;i++){ const x=92+i*10; g.beginPath(); g.moveTo(x,26+(i%2)*6); g.lineTo(x,62+(i%3)*8); g.stroke(); }
+    g.fillStyle='rgba(190,235,255,0.95)'; for(const [sx,sy,s] of [[38,98,1],[216,106,0.8]]){ g.beginPath(); g.moveTo(sx,sy-15*s); g.quadraticCurveTo(sx+10*s,sy+2*s,sx,sy+7*s); g.quadraticCurveTo(sx-10*s,sy+2*s,sx,sy-15*s); g.fill(); } }
+  g.restore(); return c;
+}
+// 写真が読めなかったときの予備として、描いた顔を先に用意しておく
+const MAKARO_TEX={}; for(const k in MAKARO_EXPR) MAKARO_TEX[k]=new THREE.CanvasTexture(drawFace(Object.assign({},FACES.makaro,MAKARO_EXPR[k])));
+
+/* ================= geometry builders ================= */
+const GC={}; const geoC=(k,f)=>GC[k]||(GC[k]=f());
+const capGeo=r=>geoC('cap'+r.toFixed(3),()=>new THREE.SphereGeometry(r,26,20,Math.PI/2-1.15,2.3,Math.PI/2-1.05,2.1));
+function faceBodyGeo(len,headR,tailR,fat){
+  const z0=-len/2,zc=len/2-headR;
+  const rAt=z=>{ if(z>=zc) return Math.sqrt(Math.max(0,headR*headR-(z-zc)*(z-zc))); const t=clamp((z-z0)/(zc-z0),0,1); return tailR+(headR-tailR)*Math.pow(Math.sin(t*Math.PI/2),fat); };
+  const geo=geoC(`fb${len}_${headR}_${tailR}_${fat}`,()=>{ const pts=[new THREE.Vector2(0.001,z0)]; const n=16;
+    for(let i=0;i<=n;i++){ const z=z0+(zc-z0)*i/n; pts.push(new THREE.Vector2(rAt(z),z)); }
+    for(let i=1;i<=10;i++){ const a=i/10*Math.PI/2; pts.push(new THREE.Vector2(Math.max(0.001,headR*Math.cos(a)),zc+headR*Math.sin(a))); }
+    const g=new THREE.LatheGeometry(pts,24); g.rotateX(Math.PI/2); return g; });
+  return {geo,zc,rAt};
+}
+function latheGeo(key,len,rFn){ return geoC(key,()=>{ const pts=[]; const n=30; for(let i=0;i<=n;i++){ const t=i/n; pts.push(new THREE.Vector2(Math.max(rFn(t),0.001),-len/2+t*len)); } const g=new THREE.LatheGeometry(pts,24); g.rotateX(Math.PI/2); return g; }); }
+function tailGeo(w,h,fork){ return geoC(`tl${w}_${h}_${fork}`,()=>{ const s=new THREE.Shape(); s.moveTo(0,h*.1); s.quadraticCurveTo(w*.45,h*.2,w,h*.5); s.quadraticCurveTo(w*(1-fork),0,w,-h*.5); s.quadraticCurveTo(w*.45,-h*.2,0,-h*.1); s.closePath(); const g=new THREE.ShapeGeometry(s,8); g.rotateY(Math.PI/2); return g; }); }
+function dorsalGeo(L,H,jag){ return geoC(`df${L}_${H}_${jag?1:0}`,()=>{ const s=new THREE.Shape(); s.moveTo(0,0);
+  if(jag){ const n=9; s.lineTo(0.05*L,H*.7); for(let i=1;i<=n;i++){ const x=i/n*L*.92,h=H*(0.75+0.25*Math.sin(i/n*Math.PI))*(1-i/n*0.35); s.lineTo(x-L*.05,h*.72); s.lineTo(x,h); } s.lineTo(L,0); }
+  else{ s.quadraticCurveTo(L*.12,H*1.05,L*.45,H); s.quadraticCurveTo(L*.85,H*.65,L,0); }
+  s.closePath(); const g=new THREE.ShapeGeometry(s,6); g.rotateY(Math.PI/2); return g; }); }
+function pectGeo(w,l){ return geoC(`pc${w}_${l}`,()=>{ const s=new THREE.Shape(); s.moveTo(0,0); s.quadraticCurveTo(w*.9,l*.05,w,l*.55); s.quadraticCurveTo(w*.7,l,w*.15,l*.75); s.lineTo(0,l*.3); s.closePath(); const g=new THREE.ShapeGeometry(s,6); g.rotateX(-Math.PI/2); return g; }); }
+function tentacle(len,segs,r0,mat,key){
+  const root=new THREE.Group(),joints=[],sl=len/segs; let parent=root;
+  for(let i=0;i<segs;i++){ const j=new THREE.Group(); parent.add(j); joints.push(j);
+    const ra=r0*(1-0.75*i/segs),rb=r0*(1-0.75*(i+1)/segs);
+    j.add(new THREE.Mesh(geoC(`${key}_${i}`,()=>{ const g=new THREE.CylinderGeometry(ra,rb,sl,7,1); g.translate(0,-sl/2,0); return g; }),mat));
+    const nx=new THREE.Group(); nx.position.y=-sl; j.add(nx); parent=nx; }
+  return {root,joints};
+}
+function newRig(){ const group=new THREE.Group(); group.rotation.order='YXZ'; const model=new THREE.Group(); group.add(model); return {group,model}; }
+
+function buildFaceFish(o){
+  const {group,model}=newRig(); model.scale.x=o.scaleX||0.88;
+  const bg=faceBodyGeo(o.len,o.headR,o.tailR,o.fat);
+  model.add(new THREE.Mesh(bg.geo,o.bodyMat));
+  const face=new THREE.Mesh(capGeo(o.headR*1.014),o.faceMat); face.position.z=bg.zc; model.add(face);
+  const tail=new THREE.Group(); tail.position.z=-o.len/2+o.len*0.06; model.add(tail);
+  tail.add(new THREE.Mesh(tailGeo(o.tail[0],o.tail[1],o.tail[2]),o.finMat));
+  if(o.dorsal){ const zF=bg.zc-o.headR*0.15,d=new THREE.Mesh(dorsalGeo(o.dorsal[0],o.dorsal[1],o.jag),o.finMat); d.position.set(0,bg.rAt(zF)*0.93,zF); model.add(d); }
+  if(o.anal){ const zA=-o.len*0.12,a=new THREE.Mesh(dorsalGeo(o.anal[0],o.anal[1],false),o.finMat); a.scale.y=-1; a.position.set(0,-bg.rAt(zA)*0.9,zA); model.add(a); }
+  let finL=null,finR=null;
+  if(o.pect){ const zP=bg.zc-o.headR*0.55,r=bg.rAt(zP);
+    finL=new THREE.Mesh(pectGeo(o.pect[0],o.pect[1]),o.finMat); finL.position.set(r*0.92,-r*0.3,zP); model.add(finL);
+    finR=new THREE.Mesh(pectGeo(o.pect[0],o.pect[1]),o.finMat); finR.scale.x=-1; finR.position.set(-r*0.92,-r*0.3,zP); model.add(finR); }
+  return {group,model,tail,finL,finR,face,zc:bg.zc};
+}
+function buildMakaro(){
+  const fm=faceMat(MAKARO_TEX.normal);
+  const finMat=ph({color:0xffb24d,emissive:0x4a2200,transparent:true,opacity:0.9,side:DS,shininess:30});
+  const f=buildFaceFish({len:2.3,headR:0.64,tailR:0.16,fat:0.75,bodyMat:ph({map:MAT.makaroBodyTex,shininess:55,specular:0x553311}),faceMat:fm,finMat,tail:[1.15,1.15,0.32],dorsal:[1.0,0.42],pect:[0.5,0.55],scaleX:0.9});
+  // 琉金のような二股の尾：縦一枚の尾を左右に開いて、後ろから見てもX字に見えるようにする
+  const t0=f.tail.children[0]; t0.rotation.z=1.15;
+  const t1=new THREE.Mesh(t0.geometry,finMat); t1.rotation.z=-1.15; f.tail.add(t1);
+  for(let i=0;i<3;i++){ const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(0,0,0),new THREE.Vector3((i-1)*0.1,0.26,0.06),new THREE.Vector3((i-1)*0.2,0.36,-0.16));
+    const m=new THREE.Mesh(new THREE.TubeGeometry(curve,8,0.035,5,false),MAT.hair); m.position.set((i-1)*0.06,0.6,f.zc+0.06); f.model.add(m); }
+  f.faceMat=fm; return f;
+}
+const buildFish=v=>buildFaceFish({len:1.0,headR:0.29,tailR:0.07,fat:0.8,bodyMat:MAT.fishBody,faceMat:MAT.fishFaces[v],finMat:MAT.fishFin,tail:[0.45,0.55,0.35],dorsal:[0.42,0.2],scaleX:0.8});
+const buildKue=()=>buildFaceFish({len:7.2,headR:1.55,tailR:0.4,fat:0.65,bodyMat:MAT.kueBody,faceMat:MAT.kueFace,finMat:MAT.kueFin,tail:[1.9,2.4,-0.45],dorsal:[4.4,1.0],jag:true,pect:[1.1,1.0],anal:[1.6,0.7],scaleX:0.82});
+function buildSquid(){
+  const {group,model}=newRig();
+  model.add(new THREE.Mesh(geoC('sq_head',()=>new THREE.SphereGeometry(0.42,18,14)),MAT.squid));
+  model.add(new THREE.Mesh(capGeo(0.42*1.014),MAT.squidFace));
+  const mantle=new THREE.Mesh(geoC('sq_mantle',()=>new THREE.ConeGeometry(0.46,1.9,16)),MAT.squid); mantle.rotation.x=-0.98; mantle.position.set(0,0.6,-0.92); model.add(mantle);
+  const fin=new THREE.Mesh(geoC('sq_fin',()=>{ const s=new THREE.Shape(); s.moveTo(0,0.95); s.lineTo(0.6,0.35); s.lineTo(0,-0.05); s.lineTo(-0.6,0.35); s.closePath(); return new THREE.ShapeGeometry(s); }),MAT.squidFin); fin.rotation.x=-0.98; fin.position.set(0,0.6,-0.92); model.add(fin);
+  const tents=[];
+  for(let i=0;i<8;i++){ const a=i/8*TAU,long=i===1||i===3; const t=tentacle(long?1.9:1.1,long?3:2,long?0.05:0.075,MAT.squid,long?'sqL':'sqS');
+    t.root.position.set(Math.cos(a)*0.2,-0.18+Math.sin(a)*0.12,-0.3); t.root.rotation.y=Math.PI+Math.cos(a)*0.35; model.add(t.root);
+    tents.push({joints:t.joints,base:-1.25+Math.sin(a)*0.2,i}); }
+  return {group,model,tents,mantle};
+}
+function buildOcto(){
+  const {group,model}=newRig();
+  const mantle=new THREE.Mesh(geoC('oc_mantle',()=>new THREE.SphereGeometry(1,22,16)),MAT.octo); mantle.scale.set(0.95,1.15,1.0); mantle.position.set(0,1.0,-0.45); model.add(mantle);
+  const fb=new THREE.Mesh(geoC('oc_face',()=>new THREE.SphereGeometry(0.82,22,16)),MAT.octo); fb.position.set(0,0.15,0.15); model.add(fb);
+  const face=new THREE.Mesh(capGeo(0.82*1.014),MAT.octoFace); face.position.copy(fb.position); model.add(face);
+  const band=new THREE.Mesh(geoC('oc_band',()=>{ const g=new THREE.TorusGeometry(0.69,0.085,8,30); g.rotateX(Math.PI/2); return g; }),MAT.cloth); band.position.set(0,0.62,0.15); band.rotation.x=-0.12; model.add(band);
+  for(const s of [-1,1]){ const k=new THREE.Mesh(geoC('oc_knot',()=>new THREE.SphereGeometry(0.11,8,6)),MAT.cloth); k.position.set(s*0.1,0.62,-0.55); k.scale.set(1.2,0.8,1.6); model.add(k); }
+  const tents=[];
+  for(let i=0;i<8;i++){ const a=i/8*TAU+0.2,t=tentacle(2.4,3,0.2,MAT.octo,'oc'); t.root.position.set(Math.sin(a)*0.45,-0.45,0.1+Math.cos(a)*0.45); t.root.rotation.y=a; model.add(t.root); tents.push({joints:t.joints,i}); }
+  return {group,model,tents};
+}
+const SHARK_R=0.95,sharkR=t=>t<0.6?SHARK_R*(0.1+0.9*Math.pow(Math.sin(t/0.6*Math.PI/2),1.5)):SHARK_R*Math.pow(Math.cos((t-0.6)/0.4*Math.PI/2),0.75);
+function buildShark(){
+  const {group,model}=newRig(); model.scale.set(0.82,0.95,1);
+  model.add(new THREE.Mesh(latheGeo('shark',7.2,sharkR),MAT.sharkBody));
+  const dorsal=new THREE.Mesh(geoC('sh_d',()=>{ const s=new THREE.Shape(); s.moveTo(0,0); s.quadraticCurveTo(0.2,0.9,0.75,1.5); s.quadraticCurveTo(0.7,0.6,1.5,0); s.closePath(); const g=new THREE.ShapeGeometry(s,6); g.rotateY(Math.PI/2); return g; }),MAT.sharkFin); dorsal.position.set(0,0.85,0.7); model.add(dorsal);
+  const tail=new THREE.Group(); tail.position.z=-3.4; model.add(tail);
+  tail.add(new THREE.Mesh(geoC('sh_t',()=>{ const s=new THREE.Shape(); s.moveTo(0,0.15); s.quadraticCurveTo(0.6,0.6,1.5,1.7); s.quadraticCurveTo(1.0,0.5,1.0,0); s.quadraticCurveTo(1.05,-0.4,1.1,-0.85); s.quadraticCurveTo(0.5,-0.35,0,-0.15); s.closePath(); const g=new THREE.ShapeGeometry(s,6); g.rotateY(Math.PI/2); return g; }),MAT.sharkFin));
+  const pg=geoC('sh_p',()=>{ const s=new THREE.Shape(); s.moveTo(0,0); s.lineTo(1.5,0.9); s.quadraticCurveTo(1.2,1.1,0.9,1.0); s.lineTo(0,0.6); s.closePath(); const g=new THREE.ShapeGeometry(s); g.rotateX(-Math.PI/2); return g; });
+  const pl=new THREE.Mesh(pg,MAT.sharkFin); pl.position.set(0.75,-0.35,1.0); pl.rotation.z=-0.35; model.add(pl);
+  const pr=new THREE.Mesh(pg,MAT.sharkFin); pr.scale.x=-1; pr.position.set(-0.75,-0.35,1.0); pr.rotation.z=0.35; model.add(pr);
+  for(const s of [-1,1]){ const e=new THREE.Mesh(geoC('eye09',()=>new THREE.SphereGeometry(0.09,8,6)),MAT.eye); e.position.set(s*0.66,0.2,2.35); model.add(e);
+    for(let k=0;k<4;k++){ const gl=new THREE.Mesh(geoC('gill',()=>new THREE.BoxGeometry(0.03,0.36,0.04)),MAT.dark); gl.position.set(s*0.86,-0.02,1.45+k*0.16); model.add(gl); } }
+  const mouth=new THREE.Mesh(geoC('sh_m',()=>{ const g=new THREE.TorusGeometry(0.36,0.055,6,16,Math.PI); g.rotateX(Math.PI/2); return g; }),MAT.dark); mouth.position.set(0,-0.48,2.42); model.add(mouth);
+  const teeth=new THREE.Mesh(geoC('sh_tt',()=>{ const g=new THREE.TorusGeometry(0.32,0.03,5,16,Math.PI); g.rotateX(Math.PI/2); return g; }),MAT.teeth); teeth.position.set(0,-0.45,2.42); model.add(teeth);
+  return {group,model,tail};
+}
+const WHALE_R=4.3,whaleR=t=>t<0.62?WHALE_R*(0.07+0.93*Math.pow(Math.sin(t/0.62*Math.PI/2),1.7)):WHALE_R*Math.pow(Math.max(0,1-Math.pow((t-0.62)/0.38,2.4)),0.5);
+function buildWhale(){
+  const {group,model}=newRig(); model.scale.set(1,0.85,1);
+  model.add(new THREE.Mesh(latheGeo('whale',34,whaleR),MAT.whaleBody));
+  const tail=new THREE.Group(); tail.position.z=-16.6; model.add(tail);
+  tail.add(new THREE.Mesh(geoC('wh_f',()=>{ const s=new THREE.Shape(); s.moveTo(0,0); s.quadraticCurveTo(2.4,0.3,5.6,2.6); s.quadraticCurveTo(3.0,2.1,0,2.1); s.quadraticCurveTo(-3.0,2.1,-5.6,2.6); s.quadraticCurveTo(-2.4,0.3,0,0); const g=new THREE.ShapeGeometry(s,8); g.rotateX(-Math.PI/2); return g; }),MAT.whaleFin));
+  const fg=geoC('wh_p',()=>{ const s=new THREE.Shape(); s.moveTo(0,0); s.quadraticCurveTo(3.0,0.4,5.6,2.4); s.quadraticCurveTo(4.0,2.6,0,1.3); s.closePath(); const g=new THREE.ShapeGeometry(s,8); g.rotateX(-Math.PI/2); return g; });
+  const fl=new THREE.Mesh(fg,MAT.whaleFin); fl.position.set(3.3,-1.8,8.5); fl.rotation.z=-0.5; model.add(fl);
+  const fr=new THREE.Mesh(fg,MAT.whaleFin); fr.scale.x=-1; fr.position.set(-3.3,-1.8,8.5); fr.rotation.z=0.5; model.add(fr);
+  const dg=new THREE.Mesh(dorsalGeo(2.2,0.9,false),MAT.whaleFin); dg.position.set(0,2.0,-6); model.add(dg);
+  for(const s of [-1,1]){ const e=new THREE.Mesh(geoC('eye22',()=>new THREE.SphereGeometry(0.22,10,8)),MAT.eye); e.position.set(s*3.45,-1.1,12.2); model.add(e); }
+  return {group,model,tail};
+}
+function buildDiver(){
+  const {group,model}=newRig();
+  const cyl=(k,r1,r2,h,seg)=>geoC(k,()=>{ const g=new THREE.CylinderGeometry(r1,r2,h,seg||12); g.rotateX(Math.PI/2); return g; });
+  const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); model.add(m); return m; };
+  add(cyl('dv_t',0.42,0.34,1.5,14),MAT.suit,0,0,0);
+  add(geoC('dv_c',()=>new THREE.SphereGeometry(0.42,14,10)),MAT.suit,0,0,0.75);
+  add(geoC('dv_h',()=>new THREE.SphereGeometry(0.34,12,10)),MAT.suit,0,0,-0.75);
+  add(cyl('dv_s',0.435,0.435,0.12,14),MAT.suitAccent,0,0,0.35);
+  add(geoC('dv_hd',()=>new THREE.SphereGeometry(0.3,14,12)),MAT.suit,0,0.08,1.32);
+  add(geoC('dv_mk',()=>new THREE.BoxGeometry(0.44,0.2,0.12)),MAT.glass,0,0.12,1.58);
+  add(geoC('dv_ch',()=>new THREE.SphereGeometry(0.15,10,8)),MAT.skin,0,-0.08,1.5);
+  add(cyl('dv_r',0.06,0.06,0.16,8),MAT.dark,0,-0.1,1.64);
+  add(cyl('dv_tk',0.2,0.2,1.15,14),MAT.tank,0,0.48,-0.05);
+  add(cyl('dv_v',0.07,0.07,0.18,8),MAT.pole,0,0.48,0.6);
+  for(const s of [-1,1]){ const a=add(cyl('dv_a',0.1,0.12,1.0,8),MAT.suit,s*0.32,-0.12,1.2); a.rotation.y=-s*0.22; add(geoC('dv_g',()=>new THREE.SphereGeometry(0.11,8,6)),MAT.suit,s*0.2,-0.15,1.72); }
+  const net=new THREE.Group(); net.position.set(0,-0.15,1.75); model.add(net);
+  const pole=new THREE.Mesh(cyl('dv_p',0.035,0.035,1.45,6),MAT.pole); pole.position.z=0.72; net.add(pole);
+  const ring=new THREE.Mesh(geoC('dv_ring',()=>new THREE.TorusGeometry(0.62,0.04,6,24)),MAT.pole); ring.position.z=1.45; net.add(ring);
+  const bag=new THREE.Mesh(geoC('dv_bag',()=>{ const g=new THREE.ConeGeometry(0.62,0.95,14,3,true); g.rotateX(-Math.PI/2); return g; }),MAT.net); bag.position.z=1.0; net.add(bag);
+  const legs=[];
+  for(const s of [-1,1]){ const L=new THREE.Group(); L.position.set(s*0.17,0,-0.95); model.add(L);
+    const th=new THREE.Mesh(geoC('dv_l',()=>{ const g=new THREE.CylinderGeometry(0.13,0.1,1.2,8); g.rotateX(Math.PI/2); g.translate(0,0,-0.6); return g; }),MAT.suit); L.add(th);
+    const fp=new THREE.Mesh(geoC('dv_fp',()=>{ const g=new THREE.BoxGeometry(0.34,0.035,0.8); g.translate(0,0,-1.55); return g; }),MAT.flipper); L.add(fp); legs.push(L); }
+  return {group,model,legs};
+}
+const BUILD={makaro:buildMakaro,fish:()=>buildFish(randi(0,5)),squid:buildSquid,octo:buildOcto,kue:buildKue,shark:buildShark,whale:buildWhale,diver:buildDiver};
+
+/* ================= creature definitions ================= */
+const DEFS={
+  fish: {name:'小魚の人面魚',short:'小魚',role:'prey',points:3,radius:0.5,cruise:5,flee:11.2,turn:3.4,sense:10,band:[-50,-8],floorGap:2,wag:6,wagK:0.8},
+  squid:{name:'イカの人面魚',short:'イカ',role:'prey',points:5,radius:0.7,cruise:3.5,burst:19,turn:2.8,sense:10,band:[-60,-10],floorGap:3,wag:3,wagK:0.2,bodyR:0.6},
+  octo: {name:'タコの人面魚',short:'タコ',role:'pred',verb:'タコに食べられた',alert:'タコが迫ってくる！',cruise:2.2,chase:11,turn:2.3,chaseTurn:2.6,sense:22,chaseTime:5,rest:4,mouthOff:0.4,mouthR:1.7,floorGap:1.4,topGap:6,wag:2.5,wagK:0.2,bodyR:1.1},
+  kue:  {name:'クエの人面魚',short:'クエ',role:'pred',verb:'クエに丸呑みされた',alert:'クエが突進してくる！',cruise:3.5,chase:21,turn:1.6,chaseTurn:1.8,sense:20,chaseTime:1.3,aimTime:0.6,rest:3.2,mouthOff:3.5,mouthR:1.7,floorGap:3,band:[-75,-20],wag:2.5,wagK:0.25,bodyR:1.6},
+  shark:{name:'サメ',short:'サメ',role:'pred',verb:'サメに食べられた',alert:'サメが追ってくる！',cruise:7.5,chase:16.2,turn:1.2,chaseTurn:1.55,sense:38,chaseTime:7,rest:5,mouthOff:3.3,mouthR:1.3,floorGap:4,band:[-60,-6],wag:2.5,wagK:0.25,bodyR:1.0},
+  whale:{name:'クジラ',short:'クジラ',role:'pred',verb:'クジラに飲み込まれた',alert:'クジラの口が迫る！',cruise:4.2,chase:10.5,turn:0.32,chaseTurn:0.5,sense:36,chaseTime:4,rest:7,mouthOff:16.6,mouthR:4.6,floorGap:9,topGap:6,band:[-40,-14],wag:1.2,wagK:0.08,bodyR:4},
+  diver:{name:'ダイバー',short:'ダイバー',role:'pred',verb:'ダイバーに捕まった',alert:'ダイバーが近づいてくる！',cruise:2.6,chase:5.2,turn:1.7,chaseTurn:1.9,sense:50,chaseTime:999,rest:2,mouthOff:3.2,mouthR:1.4,floorGap:2,band:[-55,-5],wag:3,wagK:0.4,bodyR:0.9},
+};
+const MAXS=13, TURN=2.4;
+
+/* ================= portraits for the field guide ================= */
+const PORTRAIT={makaro:{d:4.6,h:0.55,yaw:0.55,look:[0,0,0.25]},fish:{d:2.3,h:0.25,yaw:0.6,look:[0,0,0.1]},squid:{d:4.3,h:0.7,yaw:0.4,look:[0,0.25,-0.5]},
+  octo:{d:6.6,h:1.4,yaw:0.45,look:[0,0.2,0]},kue:{d:11,h:1.5,yaw:0.6,look:[0,0,0.9]},shark:{d:12.5,h:2.4,yaw:1.0,look:[0,0,0.5]},whale:{d:44,h:7,yaw:1.0,look:[0,0,3]},diver:{d:7.2,h:2.0,yaw:0.85,look:[0,0,1.0]}};
+const PORTRAIT_URL={};
+const portraitScene=new THREE.Scene(); portraitScene.add(new THREE.HemisphereLight(0xcff4ff,0x16384a,1.1));
+{ const dl=new THREE.DirectionalLight(0xffffff,0.8); dl.position.set(2,4,5); portraitScene.add(dl); }
+const portraitCam=new THREE.PerspectiveCamera(30,1,0.1,300);
+function renderPortrait(k){
+  renderer.setPixelRatio(1); renderer.setSize(192,192,false); renderer.setClearColor(0x000000,0);
+  const b=k==='fish'?buildFish(1):BUILD[k](); portraitScene.add(b.group); const p=PORTRAIT[k],L=new THREE.Vector3(p.look[0],p.look[1],p.look[2]);
+  portraitCam.position.set(L.x+Math.sin(p.yaw)*p.d,L.y+p.h,L.z+Math.cos(p.yaw)*p.d); portraitCam.lookAt(L);
+  renderer.render(portraitScene,portraitCam); try{ PORTRAIT_URL[k]=renderer.domElement.toDataURL('image/png'); }catch(e){ PORTRAIT_URL[k]=''; }
+  portraitScene.remove(b.group);
+  renderer.setPixelRatio(DPR); renderer.setClearColor(0x000000,1);
+}
+for(const k in PORTRAIT) renderPortrait(k);
+
+/* ================= entities ================= */
+const ents=[],schools=[];
+function addEnt(kind,built,extra){
+  const d=DEFS[kind];
+  const e=Object.assign({kind,def:d,yaw:rand(0,TAU),pitch:0,roll:0,yawRate:0,speed:d.cruise,state:'wander',timer:rand(0,4),target:new THREE.Vector3(),alive:true,respawn:0,phase:rand(0,TAU),home:null,extra:!!extra,flee:0,cool:0,jet:0,bubT:rand(0,2)},built);
+  e.pos=built.group.position; scene.add(built.group); ents.push(e); return e;
+}
+for(let s=0;s<6;s++){ const sc={center:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,t:0}; schools.push(sc);
+  for(let i=0;i<8;i++){ const e=addEnt('fish',buildFish(randi(0,5))); e.school=sc; e.slot=new THREE.Vector3(rand(-3.5,3.5),rand(-1.6,1.6),rand(-3.5,3.5)); } }
+for(let i=0;i<10;i++) addEnt('squid',buildSquid());
+function homeFarFrom(x,z,minD){ for(let k=0;k<40;k++){ const s=pick(ROCK_SPOTS); if(Math.hypot(s.x-x,s.z-z)>=minD) return {x:s.x+rand(-4,4),z:s.z+rand(-4,4)}; } const [hx,hz]=randomPointAround(x,z,minD,minD+80); return {x:hx,z:hz}; }
+function spawnPred(kind,extra){ const e=addEnt(kind,BUILD[kind](),extra); if(kind==='octo'||kind==='kue') e.home=homeFarFrom(0,0,50); placePred(e,player?player.pos:ORIGIN); return e; }
+const player=Object.assign(buildMakaro(),{yaw:0,pitch:0,roll:0,speed:0,yawRate:0,vel:new THREE.Vector3(),uturn:null,grace:0,alive:true,expr:'normal',exprT:0,phase:0,bubT:0});
+player.pos=player.group.position; scene.add(player.group);
+
+function bandY(e,x,z){ const d=e.def,fy=floorY(x,z)+d.floorGap+1,b=d.band||[-60,-6]; return clamp(rand(b[0],b[1]),fy,-(d.topGap||3)); }
+function pickWander(e){
+  const d=e.def; let x,z,y;
+  if(e.home){ const a=rand(0,TAU),r=rand(3,e.kind==='octo'?12:20); x=e.home.x+Math.cos(a)*r; z=e.home.z+Math.sin(a)*r; const fy=floorY(x,z);
+    y=e.kind==='octo'?fy+d.floorGap:clamp(fy+rand(4,14),fy+d.floorGap,-10); }
+  else{ const near=(state==='playing')&&(e.kind==='shark'||e.kind==='diver'||e.kind==='squid'); const ref=near?player.pos:ORIGIN;
+    const rr=e.kind==='whale'?[60,220]:e.kind==='squid'?[10,90]:e.kind==='shark'?(near?[50,160]:[40,200]):e.kind==='diver'?(near?[30,100]:[40,180]):[20,140];
+    [x,z]=randomPointAround(ref.x,ref.z,rr[0],rr[1]); y=bandY(e,x,z); }
+  e.target.set(x,y,z);
+}
+function placePred(e,ref){
+  let x,z,y;
+  if(e.home){ x=e.home.x+rand(-3,3); z=e.home.z+rand(-3,3); const fy=floorY(x,z); y=e.kind==='octo'?fy+e.def.floorGap:fy+rand(4,10); }
+  else{ [x,z]=randomPointAround(ref.x,ref.z,e.kind==='diver'?90:110,230); y=bandY(e,x,z); }
+  e.pos.set(x,y,z); e.yaw=rand(0,TAU); e.pitch=0; e.speed=e.def.cruise; e.state='wander'; e.timer=rand(1,6); e.alive=true; pickWander(e);
+}
+function placeSchoolFish(e){ e.pos.copy(e.school.center).add(e.slot); e.alive=true; e.flee=0; e.yaw=e.school.yaw; e.speed=e.def.cruise; }
+function placeSquid(e,ref,rMin,rMax){ const [x,z]=randomPointAround(ref.x,ref.z,rMin,rMax); e.pos.set(x,bandY(e,x,z),z); e.alive=true; e.jet=0; e.cool=0; e.speed=e.def.cruise; pickWander(e); }
+
+/* ================= state ================= */
+let state='title',score=0,nFish=0,nSquid=0,level=1,survT=0,best=0,diff=1,deathT=0,killer=null,gameT=0,danger=0,narrow=false,edgeT=0;
+try{ best=parseInt(localStorage.getItem('makaro-best')||'0',10)||0; }catch(e){}
+const keys={}; const pointer={x:0,y:0,down:false,inside:false}; let inputMode='keys';
+
+function resetWorld(){
+  for(let i=ents.length-1;i>=0;i--){ if(ents[i].extra){ scene.remove(ents[i].group); ents.splice(i,1); } }
+  player.pos.copy(ORIGIN); player.yaw=0; player.pitch=0; player.roll=0; player.speed=0; player.yawRate=0; player.uturn=null; player.vel.set(0,0,0);
+  player.group.visible=true; player.group.scale.setScalar(1); player.alive=true; player.exprT=0; setExpr('normal');
+  for(const s of schools){ const [x,z]=randomPointAround(0,0,22,85); s.center.set(x,clamp(rand(-40,-12),floorY(x,z)+6,-6),z); s.target.copy(s.center); s.t=0; }
+  for(const e of ents){
+    if(e.kind==='fish') placeSchoolFish(e);
+    else if(e.kind==='squid') placeSquid(e,ORIGIN,18,95);
+    else placePred(e,ORIGIN);
+    e.group.visible=true;
+  }
+}
+const INITIAL={octo:6,kue:5,shark:3,whale:2,diver:2};
+for(const k in INITIAL) for(let i=0;i<INITIAL[k];i++) spawnPred(k,false);
+resetWorld();
+
+/* ================= audio ================= */
+const AU={ctx:null,master:null,muted:false,nextBeat:0};
+try{ AU.muted=localStorage.getItem('makaro-mute')==='1'; }catch(e){}
+function audioInit(){
+  if(AU.ctx){ if(AU.ctx.state==='suspended') AU.ctx.resume(); return; }
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  try{ const ctx=new AC(); AU.ctx=ctx; AU.master=ctx.createGain(); AU.master.gain.value=AU.muted?0:0.55; AU.master.connect(ctx.destination);
+    const len=ctx.sampleRate*4,buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0); let last=0;
+    for(let i=0;i<len;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.2; }
+    const src=ctx.createBufferSource(); src.buffer=buf; src.loop=true; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=380;
+    const g=ctx.createGain(); g.gain.value=0.22; const lfo=ctx.createOscillator(); lfo.frequency.value=0.08; const lg=ctx.createGain(); lg.gain.value=160;
+    lfo.connect(lg); lg.connect(lp.frequency); src.connect(lp); lp.connect(g); g.connect(AU.master); src.start(); lfo.start();
+  }catch(e){ AU.ctx=null; }
+}
+function tone(f0,f1,dur,type,vol,delay){ const ctx=AU.ctx; if(!ctx||AU.muted) return; const t=ctx.currentTime+(delay||0),o=ctx.createOscillator(),g=ctx.createGain();
+  o.type=type; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(AU.master); o.start(t); o.stop(t+dur+0.05); }
+const sfx={eat(){tone(420,980,.11,'sine',.4);tone(900,1500,.07,'triangle',.15,.04);},squid(){tone(380,900,.12,'sine',.4);tone(700,1700,.12,'sine',.3,.07);tone(1100,2000,.08,'triangle',.12,.13);},
+  beat(){tone(95,48,.22,'sine',.6);},death(){tone(520,70,1.1,'sawtooth',.16);tone(260,40,1.2,'sine',.4,.05);},level(){[660,880,1175].forEach((f,i)=>tone(f,f*1.01,.14,'triangle',.22,i*.09));},ink(){tone(200,90,.25,'triangle',.18);}};
+function setMute(m){ AU.muted=m; if(AU.master) AU.master.gain.value=m?0:0.55; try{ localStorage.setItem('makaro-mute',m?'1':'0'); }catch(e){}
+  $('muteBtn').setAttribute('aria-pressed',m?'true':'false'); $('muteWave').style.display=m?'none':''; $('muteX').style.display=m?'':'none'; }
+
+/* ================= player ================= */
+function setExpr(n){ if(player.expr===n) return; player.expr=n; player.faceMat.map=MAKARO_TEX[n]; }
+function updatePlayer(dt){
+  const P=player;
+  const thrust=!!(keys.KeyW||keys.ArrowUp||pointer.down);
+  let yawIn=0,pitchIn=0;
+  if(keys.KeyA||keys.ArrowLeft) yawIn+=1; if(keys.KeyD||keys.ArrowRight) yawIn-=1;
+  if(keys.Space) pitchIn+=1; if(keys.ShiftLeft||keys.ShiftRight) pitchIn-=1;
+  if(inputMode==='mouse'&&pointer.inside){ const ax=Math.abs(pointer.x),ay=Math.abs(pointer.y);
+    if(ax>0.08) yawIn+=-Math.sign(pointer.x)*Math.min(1,(ax-0.08)/0.62);
+    if(ay>0.1) pitchIn+=Math.sign(pointer.y)*Math.min(1,(ay-0.1)/0.6); }
+  yawIn=clamp(yawIn,-1,1); pitchIn=clamp(pitchIn,-1,1);
+  if(P.uturn){ P.uturn.t+=dt/0.5; const t=Math.min(1,P.uturn.t),ny=P.uturn.from+Math.PI*easeIO(t)*P.uturn.dir; P.yawRate=(ny-P.yaw)/Math.max(dt,1e-4); P.yaw=ny; if(t>=1) P.uturn=null; }
+  else{ P.yawRate=damp(P.yawRate,yawIn*TURN,10,dt); P.yaw+=P.yawRate*dt; }
+  P.pitch=damp(P.pitch,pitchIn*0.85,4,dt);
+  if(thrust) P.speed+=(MAXS-P.speed)*(1-Math.exp(-2.4*dt)); else P.speed*=Math.exp(-1.4*dt);
+  fwdVec(P.yaw,P.pitch,V1); P.vel.copy(V1).multiplyScalar(P.speed);
+  if(P.speed<4) P.vel.y+=pitchIn*4*(1-P.speed/4);
+  P.pos.addScaledVector(P.vel,dt);
+  const fy=floorY(P.pos.x,P.pos.z)+0.9; if(P.pos.y<fy) P.pos.y=fy; if(P.pos.y>SURF) P.pos.y=SURF;
+  const r=Math.hypot(P.pos.x,P.pos.z); if(r>WORLD_R){ P.pos.x*=WORLD_R/r; P.pos.z*=WORLD_R/r; if(gameT>edgeT){ toast('この先は外洋。引き返そう'); edgeT=gameT+5; } }
+  pushOutRocks(P.pos,0.7);
+  for(const e of ents){ if(e.kind!=='whale') continue; fwdVec(e.yaw,e.pitch,V2); V3.copy(e.pos).addScaledVector(V2,-14); V4.subVectors(P.pos,V3); const t=clamp(V4.dot(V2),0,28);
+    V5.copy(V3).addScaledVector(V2,t); V6.subVectors(P.pos,V5); const L=V6.length(),rad=whaleR(clamp((t+3)/34,0,1))*0.88+0.7; if(L<rad&&L>1e-4) P.pos.addScaledVector(V6,(rad-L)/L); }
+  P.roll=damp(P.roll,clamp(-P.yawRate*0.32,-0.75,0.75),6,dt);
+  P.group.rotation.set(-P.pitch,P.yaw,P.roll);
+  P.group.visible=P.grace>0?(Math.floor(P.grace*10)%2===0):true;
+  P.bubT-=dt; if(P.speed>8&&P.bubT<=0){ P.bubT=0.18; V2.copy(P.pos).addScaledVector(V1,-0.6); spawnBubble(V2.x,V2.y,V2.z,rand(-.3,.3),rand(.8,1.5),rand(-.3,.3),1.4); }
+  animPlayer(dt);
+}
+function animPlayer(dt){ const P=player; P.phase+=dt*(4+P.speed*0.9); P.tail.rotation.y=Math.sin(P.phase)*0.45*(0.55+P.speed/24); const f=0.35+Math.sin(P.phase*0.8)*0.3; P.finL.rotation.z=f; P.finR.rotation.z=-f; }
+function idlePlayer(dt){ const P=player; P.pos.set(ORIGIN.x,ORIGIN.y+Math.sin(gameT*0.9)*0.25,ORIGIN.z); P.yaw=Math.sin(gameT*0.3)*0.25; P.pitch=0; P.roll=Math.sin(gameT*0.5)*0.05; P.speed=0;
+  P.group.rotation.set(0,P.yaw,P.roll); P.group.visible=true; animPlayer(dt); setExpr(Math.sin(gameT*0.45)>0.93?'happy':'normal'); }
+function startUTurn(){ const P=player; if(P.uturn||state!=='playing') return; P.uturn={from:P.yaw,t:0,dir:P.yawRate<-0.2?-1:1}; }
+
+/* ================= creature AI ================= */
+function steerTo(e,t,turn,dt){
+  const dx=t.x-e.pos.x,dy=t.y-e.pos.y,dz=t.z-e.pos.z;
+  const dyaw=Math.atan2(dx,dz),dp=clamp(Math.atan2(dy,Math.hypot(dx,dz)),-0.75,0.75);
+  const step=turn*dt,ch=clamp(angDiff(e.yaw,dyaw),-step,step);
+  e.yaw+=ch; e.yawRate=ch/Math.max(dt,1e-4); e.pitch+=clamp(dp-e.pitch,-step*0.7,step*0.7);
+  e.roll=damp(e.roll,clamp(-e.yawRate*0.22,-0.6,0.6),4,dt);
+}
+function moveEnt(e,dt){
+  const d=e.def,cp=Math.cos(e.pitch);
+  e.pos.x+=Math.sin(e.yaw)*cp*e.speed*dt; e.pos.y+=Math.sin(e.pitch)*e.speed*dt; e.pos.z+=Math.cos(e.yaw)*cp*e.speed*dt;
+  const fy=floorY(e.pos.x,e.pos.z)+d.floorGap; if(e.pos.y<fy){ e.pos.y=fy; if(e.pitch<0) e.pitch*=0.8; }
+  const top=-(d.topGap||2); if(e.pos.y>top){ e.pos.y=top; if(e.pitch>0) e.pitch*=0.8; }
+  const r=Math.hypot(e.pos.x,e.pos.z); if(r>WORLD_R){ e.pos.x*=WORLD_R/r; e.pos.z*=WORLD_R/r; e.timer=0; }
+  if(e.kind!=='fish') pushOutRocks(e.pos,d.bodyR||1);
+  e.group.rotation.set(-e.pitch,e.yaw,e.roll);
+}
+function wander(e,dt,turn){ if(e.pos.distanceTo(e.target)<5||e.timer<=0){ pickWander(e); e.timer=rand(7,15); } steerTo(e,e.target,turn,dt); }
+function updateSchools(dt){
+  for(const s of schools){ s.t-=dt;
+    if(s.center.distanceTo(s.target)<6||s.t<=0){ const ref=state==='playing'?player.pos:ORIGIN,[x,z]=randomPointAround(ref.x,ref.z,20,110); s.target.set(x,clamp(rand(-48,-10),floorY(x,z)+6,-6),z); s.t=rand(8,16); }
+    V1.subVectors(s.target,s.center); const L=V1.length(); if(L>0.01){ s.center.addScaledVector(V1,Math.min(L,4.2*dt)/L); s.yaw=Math.atan2(V1.x,V1.z); } }
+}
+function updateFish(e,dt){
+  if(!e.alive){ e.respawn-=dt; if(e.respawn<=0){ if(state!=='playing'||e.school.center.distanceTo(player.pos)>45){ placeSchoolFish(e); } else e.respawn=1; } return; }
+  const d=e.def; V1.subVectors(e.pos,player.pos); const dist=V1.length();
+  if(state==='playing'&&player.alive&&dist<d.sense) e.flee=1.3;
+  if(e.flee>0){ e.flee-=dt; V2.copy(e.pos).addScaledVector(V1,8/Math.max(dist,0.1)); V2.y+=Math.sin(e.phase*0.3)*2; steerTo(e,V2,d.turn*1.2,dt); e.speed=damp(e.speed,d.flee,4,dt); }
+  else{ const s=e.school; V2.copy(s.center).add(e.slot); V2.y+=Math.sin(gameT*0.8+e.slot.x)*0.4; const L=V2.distanceTo(e.pos);
+    if(L<2){ V2.x+=Math.sin(s.yaw)*5; V2.z+=Math.cos(s.yaw)*5; }
+    steerTo(e,V2,d.turn,dt); e.speed=damp(e.speed,clamp(L*1.4,2.5,9),3,dt); }
+  moveEnt(e,dt);
+}
+function updateSquid(e,dt){
+  if(!e.alive){ e.respawn-=dt; if(e.respawn<=0) placeSquid(e,state==='playing'?player.pos:ORIGIN,60,110); return; }
+  const d=e.def; V1.subVectors(e.pos,player.pos); const dist=V1.length(); e.cool-=dt; e.timer-=dt;
+  const threat=state==='playing'&&player.alive&&dist<d.sense;
+  if(threat&&e.cool<=0){ e.cool=3.8; e.jet=1; e.speed=d.burst; e.yaw=Math.atan2(V1.x,V1.z)+rand(-0.4,0.4); e.pitch=clamp(Math.atan2(V1.y,Math.hypot(V1.x,V1.z)),-0.5,0.5); spawnInk(e.pos); sfx.ink(); }
+  if(e.jet>0){ e.jet-=dt*0.9; e.speed=damp(e.speed,d.cruise,1.4,dt); e.roll=damp(e.roll,0,4,dt); }
+  else if(threat){ V2.copy(e.pos).addScaledVector(V1,6/Math.max(dist,0.1)); steerTo(e,V2,d.turn,dt); e.speed=damp(e.speed,d.cruise+3.5,3,dt); }
+  else{ wander(e,dt,d.turn*0.6); e.speed=damp(e.speed,d.cruise,2,dt); }
+  moveEnt(e,dt);
+}
+function canSense(e,dist){
+  const d=e.def; if(dist>d.sense) return false;
+  if(e.kind==='octo') return player.pos.y<floorY(player.pos.x,player.pos.z)+22;
+  if(e.kind==='whale'){ fwdVec(e.yaw,e.pitch,V2); V3.subVectors(player.pos,e.pos); return V2.dot(V3)>dist*0.55; }
+  return true;
+}
+function updatePred(e,dt){
+  const d=e.def,P=player; const dist=e.pos.distanceTo(P.pos);
+  const active=state==='playing'&&P.alive&&P.grace<=0;
+  e.timer-=dt;
+  switch(e.state){
+    case 'wander': wander(e,dt,d.turn); e.speed=damp(e.speed,d.cruise,2,dt);
+      if(active&&canSense(e,dist)){ if(e.kind==='kue'){ e.state='aim'; e.timer=d.aimTime; } else { e.state='chase'; e.timer=d.chaseTime; } } break;
+    case 'aim': steerTo(e,P.pos,3.2,dt); e.speed=damp(e.speed,0.6,6,dt); if(!active){ e.state='rest'; e.timer=d.rest; break; } if(e.timer<=0){ e.state='chase'; e.timer=d.chaseTime; e.speed=d.chase*diff; } break;
+    case 'chase':
+      if(!active){ e.state='rest'; e.timer=d.rest; pickWander(e); break; }
+      V2.copy(P.pos).addScaledVector(P.vel,Math.min(dist/d.chase,0.6));
+      steerTo(e,V2,d.chaseTurn,dt); e.speed=damp(e.speed,d.chase*diff,e.kind==='kue'?30:3,dt);
+      if(e.timer<=0||dist>d.sense*1.9){ e.state='rest'; e.timer=d.rest; pickWander(e); } break;
+    default: wander(e,dt,d.turn); e.speed=damp(e.speed,d.cruise,2,dt); if(e.timer<=0){ e.state='wander'; e.timer=rand(4,10); }
+  }
+  moveEnt(e,dt);
+  if(e.kind==='diver'){ e.bubT-=dt; if(e.bubT<=0){ e.bubT=rand(1.2,2); fwdVec(e.yaw,e.pitch,V2); V3.copy(e.pos).addScaledVector(V2,1.6); V3.y+=0.2; for(let k=0;k<5;k++) spawnBubble(V3.x+rand(-.1,.1),V3.y,V3.z+rand(-.1,.1),rand(-.2,.2),rand(1.5,2.6),rand(-.2,.2),3); } }
+}
+function animEnt(e,dt){
+  const d=e.def; e.phase+=dt*(d.wag+e.speed*d.wagK); const ph=e.phase;
+  switch(e.kind){
+    case 'fish': e.tail.rotation.y=Math.sin(ph)*0.5; break;
+    case 'kue': e.tail.rotation.y=Math.sin(ph)*0.32; if(e.finL){ const f=0.3+Math.sin(ph*0.7)*0.25; e.finL.rotation.z=f; e.finR.rotation.z=-f; } e.model.rotation.y=Math.sin(ph+1.2)*0.05; break;
+    case 'shark': e.tail.rotation.y=Math.sin(ph)*0.38; e.model.rotation.y=Math.sin(ph+1.4)*0.06; break;
+    case 'whale': e.tail.rotation.x=Math.sin(ph)*0.28; e.model.rotation.x=Math.sin(ph+1.5)*0.025; break;
+    case 'squid': { const jet=clamp(e.jet,0,1); e.model.scale.set(1-jet*0.15,1-jet*0.15,1+jet*0.25);
+      for(const t of e.tents){ t.joints.forEach((j,k)=>{ j.rotation.x=(k===0?t.base:0.08)+Math.sin(ph*1.6+t.i+k*0.8)*0.18*(1-jet*0.6); j.rotation.z=Math.sin(ph*1.2+t.i*1.7+k)*0.12; }); } break; }
+    case 'octo': { const sw=clamp((e.speed-2.5)/7,0,1); e.model.rotation.x=damp(e.model.rotation.x,sw*0.9,3,dt);
+      for(const t of e.tents){ t.joints.forEach((j,k)=>{ const base=k===0?lerp(-0.95,-0.25,sw):lerp(k===1?-0.35:-0.45,0.06,sw); j.rotation.x=base+Math.sin(ph*1.3+t.i*0.9+k*0.7)*0.22; }); } break; }
+    case 'diver': e.legs[0].rotation.x=Math.sin(ph)*0.38; e.legs[1].rotation.x=-Math.sin(ph)*0.38; break;
+  }
+}
+
+/* ================= gameplay ================= */
+function eat(e){
+  e.alive=false; e.group.visible=false; e.respawn=e.kind==='fish'?3:5;
+  const pts=e.def.points; score+=pts; if(e.kind==='fish') nFish++; else nSquid++;
+  popup(e.pos,'+'+pts,e.kind==='squid'); burst(e.pos,10,0.8);
+  (e.kind==='squid'?sfx.squid:sfx.eat)(); player.exprT=0.7; updateScoreHUD();
+  const nl=1+Math.floor(score/30); if(nl>level){ level=nl; levelUp(); }
+}
+const LEVEL_ADDS=['shark','kue','diver','shark','octo','shark','whale','shark','kue','shark'];
+function levelUp(){ const k=LEVEL_ADDS[Math.min(level-2,LEVEL_ADDS.length-1)]; spawnPred(k,true); diff=1+Math.min(level-1,8)*0.035;
+  $('level').textContent=level; toast(`Lv.${level}　${DEFS[k].short}が1${k==='diver'?'人':k==='whale'?'頭':'匹'}ふえた`); sfx.level(); }
+function checkCollisions(){
+  const P=player; fwdVec(P.yaw,P.pitch,V3); V4.copy(P.pos).addScaledVector(V3,0.95);
+  for(const e of ents){ if(!e.alive) continue; const d=e.def;
+    if(d.role==='prey'){ const rr=1.05+d.radius; if(e.pos.distanceToSquared(V4)<rr*rr) eat(e); }
+    else if(P.grace<=0){ fwdVec(e.yaw,e.pitch,V5); V6.copy(e.pos).addScaledVector(V5,d.mouthOff); const rr=d.mouthR+0.6; if(V6.distanceToSquared(P.pos)<rr*rr){ die(e); return; } } }
+}
+function die(e){
+  if(state!=='playing') return; state='dying'; killer=e; deathT=0; player.alive=false; e.state='rest'; e.timer=99;
+  setExpr('scared'); sfx.death(); $('warn').hidden=true; $('vignette').style.opacity='0.9';
+  player.deathFrom=player.pos.clone();
+}
+function dyingPlayer(dt){
+  const P=player,e=killer; fwdVec(e.yaw,e.pitch,V5);
+  if(e.kind==='diver'){ V6.copy(e.pos).addScaledVector(V5,e.def.mouthOff-0.5); P.pos.lerp(V6,1-Math.exp(-8*dt)); P.group.scale.setScalar(Math.max(0.55,1-deathT*0.4)); }
+  else{ V6.copy(e.pos).addScaledVector(V5,e.def.mouthOff*0.7); P.pos.lerp(V6,1-Math.exp(-5*dt)); P.group.scale.setScalar(Math.max(0,1-Math.max(0,deathT-0.25)*1.4)); }
+  P.yaw+=dt*4; P.group.rotation.set(-P.pitch,P.yaw,P.roll); P.group.visible=true; animPlayer(dt);
+}
+function gameOver(){
+  state='over'; const s=Math.floor(survT); let isNew=false;
+  if(score>best){ best=score; isNew=score>0; try{ localStorage.setItem('makaro-best',String(best)); }catch(e){} }
+  $('overCause').textContent=killer?killer.def.verb:'食べられた'; $('overImg').src=killer?PORTRAIT_URL[killer.kind]:'';
+  $('overScore').textContent=score; $('overNew').hidden=!isNew; $('rTime').textContent=fmtTime(s); $('rBest').textContent=best;
+  $('rFish').textContent=nFish+'匹'; $('rSquid').textContent=nSquid+'杯'; $('best').textContent=best;
+  $('vignette').style.opacity='0'; clearMarkers();
+  show('over'); setTimeout(()=>{ if(state==='over') $('retryBtn').focus({preventScroll:true}); },60);
+}
+
+/* ================= HUD ================= */
+const markerEls=[];
+for(let i=0;i<6;i++){ const el=document.createElement('div'); el.className='mk'; el.hidden=true; el.innerHTML='<span class="mk-ring"></span><span class="mk-arrow"></span><span class="mk-label"></span>'; $('markers').appendChild(el); markerEls.push({el,arrow:el.children[1],label:el.children[2]}); }
+function clearMarkers(){ for(const m of markerEls) m.el.hidden=true; }
+function updateScoreHUD(){ $('score').textContent=score; $('tally').textContent=`小魚 ${nFish}匹 ・ イカ ${nSquid}杯`; }
+let toastTimer=0;
+function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ el.hidden=true; },2600); }
+function popup(p,text,big){ V1.copy(p).project(camera); if(V1.z>1) return; const el=document.createElement('div'); el.className='pop'+(big?' big':''); el.textContent=text;
+  el.style.left=((V1.x+1)/2*innerWidth)+'px'; el.style.top=((1-V1.y)/2*innerHeight)+'px'; $('popups').appendChild(el); setTimeout(()=>el.remove(),1000); }
+function updateThreats(){
+  const P=player,list=[]; let near=null,nd=1e9;
+  for(const e of ents){ if(e.def.role!=='pred'||(e.state!=='chase'&&e.state!=='aim')) continue; const d=e.pos.distanceTo(P.pos); if(d<70){ list.push([d,e]); if(d<nd){ nd=d; near=e; } } }
+  danger=near?clamp(1-(nd-4)/36,0,1):0;
+  $('vignette').style.opacity=(danger*0.85).toFixed(3);
+  const w=$('warn'); if(near&&nd<50){ if(w.textContent!==near.def.alert) w.textContent=near.def.alert; w.hidden=false; } else w.hidden=true;
+  list.sort((a,b)=>a[0]-b[0]); const W=innerWidth,H=innerHeight;
+  for(let i=0;i<markerEls.length;i++){ const m=markerEls[i],it=list[i]; if(!it){ m.el.hidden=true; continue; } m.el.hidden=false; const d=it[0],e=it[1];
+    V1.copy(e.pos); V1.y+=e.kind==='whale'?3:0.6; V1.project(camera); let x=V1.x,y=V1.y; const behind=V1.z>1; if(behind){ x=-x; y=-y; }
+    const off=behind||Math.abs(x)>0.9||Math.abs(y)>0.85; if(off){ const k=Math.max(Math.abs(x)/0.86,Math.abs(y)/0.76,1e-3); x/=k; y/=k; }
+    m.el.classList.toggle('off',off); m.el.style.transform=`translate(${((x+1)/2*W).toFixed(1)}px,${((1-y)/2*H).toFixed(1)}px)`;
+    if(off) m.arrow.style.transform=`rotate(${Math.atan2(-y,x).toFixed(3)}rad)`;
+    const lbl=`${e.def.short} ${Math.round(d)}m`; if(m.label.textContent!==lbl) m.label.textContent=lbl; }
+  if(AU.ctx&&danger>0.25&&gameT>=AU.nextBeat){ sfx.beat(); AU.nextBeat=gameT+lerp(0.9,0.4,danger); }
+}
+function updateExpr(dt){
+  const P=player; if(P.exprT>0){ P.exprT-=dt; setExpr('happy'); return; }
+  if(danger>0.35){ setExpr('scared'); return; }
+  fwdVec(P.yaw,P.pitch,V3); let near=false;
+  for(const e of ents){ if(!e.alive||e.def.role!=='prey') continue; V4.subVectors(e.pos,P.pos); const L=V4.length(); if(L<6&&V4.dot(V3)>L*0.6){ near=true; break; } }
+  setExpr(near?'chomp':'normal');
+}
+const sonar=$('sonar'),sctx=sonar.getContext('2d');
+function sizeSonar(){ const css=sonar.clientWidth||150; sonar.width=Math.round(css*DPR); sonar.height=Math.round(css*DPR); }
+function drawSonar(){
+  const S=sonar.width,c=S/2,R=S/2-2,range=70,k=R/range,P=player,g=sctx;
+  g.clearRect(0,0,S,S);
+  let gr=g.createRadialGradient(c,c,0,c,c,R); gr.addColorStop(0,'rgba(16,72,92,0.92)'); gr.addColorStop(1,'rgba(3,20,31,0.94)');
+  g.fillStyle=gr; g.beginPath(); g.arc(c,c,R,0,TAU); g.fill();
+  g.strokeStyle='rgba(143,216,194,0.25)'; g.lineWidth=DPR; g.beginPath(); g.arc(c,c,R*0.5,0,TAU); g.stroke(); g.beginPath(); g.arc(c,c,R-0.5,0,TAU); g.stroke();
+  g.beginPath(); g.moveTo(c,c-R); g.lineTo(c,c+R); g.moveTo(c-R,c); g.lineTo(c+R,c); g.stroke();
+  const sw=(gameT*1.7)%TAU; for(let i=0;i<14;i++){ g.fillStyle=`rgba(143,216,194,${0.16*(1-i/14)})`; g.beginPath(); g.moveTo(c,c); g.arc(c,c,R,sw-(i+1)*0.06,sw-i*0.06); g.closePath(); g.fill(); }
+  const fx=Math.sin(P.yaw),fz=Math.cos(P.yaw),rx=-fz,rz=fx;
+  for(const e of ents){ if(!e.alive) continue; const dx=e.pos.x-P.pos.x,dz=e.pos.z-P.pos.z; if(dx*dx+dz*dz>range*range*1.1) continue;
+    const sx=c+(dx*rx+dz*rz)*k,sy=c-(dx*fx+dz*fz)*k; if((sx-c)*(sx-c)+(sy-c)*(sy-c)>(R-3)*(R-3)) continue;
+    const dy=e.pos.y-P.pos.y,far=Math.abs(dy)>9; let col,r;
+    switch(e.kind){ case 'fish':col=COL.kelp;r=1.6;break; case 'squid':col=COL.kelp;r=2.6;break; case 'diver':col=COL.diver;r=3;break; case 'whale':col=COL.danger;r=6;break; case 'kue':col=COL.danger;r=3.4;break; default:col=COL.danger;r=3; }
+    r*=DPR; g.globalAlpha=far?0.5:1;
+    if(far){ g.strokeStyle=col; g.lineWidth=1.2*DPR; g.beginPath(); g.arc(sx,sy,r,0,TAU); g.stroke(); } else { g.fillStyle=col; g.beginPath(); g.arc(sx,sy,r,0,TAU); g.fill(); }
+    g.globalAlpha=1; }
+  g.fillStyle=COL.makaro; g.beginPath(); g.moveTo(c,c-6*DPR); g.lineTo(c+4.5*DPR,c+4.5*DPR); g.lineTo(c-4.5*DPR,c+4.5*DPR); g.closePath(); g.fill();
+  g.fillStyle='rgba(167,201,195,0.8)'; g.font=`${9*DPR}px "Share Tech Mono",monospace`; g.textAlign='center'; g.fillText('35m',c,c-R*0.5+10*DPR); g.fillText('70m',c,c-R+12*DPR);
+}
+let hudSec=-1;
+function updateHUD(){ const s=Math.floor(survT); if(s!==hudSec){ hudSec=s; $('time').textContent=fmtTime(s); } const dp=String(Math.max(0,Math.round(-player.pos.y))); if($('depth').textContent!==dp) $('depth').textContent=dp; drawSonar(); }
+
+/* ================= camera & environment ================= */
+const camPos=new THREE.Vector3(5,-23,6),camLook=new THREE.Vector3().copy(ORIGIN);
+const SHALLOW=new THREE.Color(0x1a8aa3),DEEP=new THREE.Color(0x03182a);
+function updateCamera(dt){
+  const P=player;
+  if(state==='title'){ const a=0.42+Math.sin(gameT*0.17)*0.5,r=narrow?7.4:5.2;
+    V1.set(P.pos.x+Math.sin(a)*r,P.pos.y+0.7,P.pos.z+Math.cos(a)*r); V2.copy(P.pos);
+    if(narrow) V2.y-=2.6; else { V3.subVectors(P.pos,V1).normalize(); V2.x+=V3.z*1.9; V2.z-=V3.x*1.9; }
+    camPos.lerp(V1,1-Math.exp(-2*dt)); camLook.lerp(V2,1-Math.exp(-3*dt)); }
+  else if((state==='dying'||state==='over')&&killer){ const e=killer; fwdVec(e.yaw,e.pitch,V3); V4.copy(e.pos).addScaledVector(V3,e.def.mouthOff);
+    const back={whale:26,kue:8,octo:6.5,shark:8,diver:5.5}[e.kind]||7; V1.copy(V4).addScaledVector(V3,back); V1.x+=-V3.z*back*0.35; V1.z+=V3.x*back*0.35; V1.y+=e.kind==='whale'?5:1.5;
+    camPos.lerp(V1,1-Math.exp(-2.5*dt)); camLook.lerp(V4,1-Math.exp(-4*dt)); }
+  else{ fwdVec(P.yaw,P.pitch*0.55,V3); V1.copy(P.pos).addScaledVector(V3,-7.2); V1.y+=2.4; fwdVec(P.yaw,P.pitch,V4); V2.copy(P.pos).addScaledVector(V4,3.5); V2.y+=0.5;
+    camPos.lerp(V1,1-Math.exp(-5*dt)); camLook.lerp(V2,1-Math.exp(-8*dt)); }
+  camPos.y=Math.min(camPos.y,-0.8); const fy=floorY(camPos.x,camPos.z)+1.2; if(camPos.y<fy) camPos.y=fy;
+  camera.position.copy(camPos); camera.lookAt(camLook);
+  const fov=60+(state==='playing'?P.speed*0.5:0); if(Math.abs(camera.fov-fov)>0.02){ camera.fov=damp(camera.fov,fov,3,dt); camera.updateProjectionMatrix(); }
+}
+const mod=(a,n)=>((a%n)+n)%n;
+function updateEnv(dt){
+  const cy=camera.position.y,t=smooth(-80,-3,cy); fogCol.copy(DEEP).lerp(SHALLOW,t); scene.fog.density=lerp(0.024,0.0135,t); hemi.intensity=lerp(0.5,1.05,t); sun.intensity=lerp(0.2,0.9,t);
+  surfTex.offset.x+=dt*0.004; surfTex.offset.y+=dt*0.0025;
+  const cx=camera.position.x,cz=camera.position.z,T=150,dF=smooth(-75,-5,cy);
+  for(const r of rays){ const u=r.userData,x=u.ox+Math.round((cx-u.ox)/T)*T,z=u.oz+Math.round((cz-u.oz)/T)*T; r.position.set(x,-46.3,z); r.rotation.set(0,Math.atan2(cx-x,cz-z),u.tilt);
+    const d=Math.hypot(cx-x,cz-z); r.material.opacity=u.base*dF*smooth(3,14,d)*(1-smooth(55,80,d))*(0.75+0.25*Math.sin(gameT*0.6+u.ph)); }
+  const sp=snowGeo.attributes.position.array,B=SNOW_B,ox=cx-B/2,oy=cy-B/2,oz=cz-B/2,drift=gameT*0.3;
+  for(let i=0;i<SNOW_N;i++){ sp[i*3]=ox+mod(snowBase[i*3]-ox,B); sp[i*3+1]=oy+mod(snowBase[i*3+1]-drift-oy,B); sp[i*3+2]=oz+mod(snowBase[i*3+2]-oz,B); }
+  snowGeo.attributes.position.needsUpdate=true;
+  for(let i=0;i<BUB_N;i++){ if(bubLife[i]<=0) continue; bubLife[i]-=dt; bubVel[i*3+1]=damp(bubVel[i*3+1],3.5,1.5,dt);
+    bubPos[i*3]+=(bubVel[i*3]+Math.sin(gameT*6+i)*0.3)*dt; bubPos[i*3+1]+=bubVel[i*3+1]*dt; bubPos[i*3+2]+=bubVel[i*3+2]*dt;
+    if(bubLife[i]<=0||bubPos[i*3+1]>-0.3){ bubLife[i]=0; bubPos[i*3+1]=-9999; } }
+  bubGeo.attributes.position.needsUpdate=true;
+  for(const s of inks){ const u=s.userData; if(u.life<=0) continue; u.life-=dt; s.position.addScaledVector(u.v,dt); const a=u.life/2.4; s.material.opacity=0.85*a; s.scale.setScalar(1+(1-a)*3.5); if(u.life<=0) s.visible=false; }
+}
+
+/* ================= flow & input ================= */
+function show(which){ $('title').hidden=which!=='title'; $('over').hidden=which!=='over'; $('pauseOv').hidden=which!=='pause'; $('hud').hidden=!(which==='hud'||which==='pause'); }
+function start(){
+  if(state==='playing'||state==='dying') return;
+  audioInit(); resetWorld();
+  score=0; nFish=0; nSquid=0; level=1; survT=0; diff=1; hudSec=-1; danger=0; killer=null;
+  updateScoreHUD(); $('level').textContent='1'; $('best').textContent=best;
+  player.grace=2.5; player.alive=true; state='playing'; show('hud');
+  if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+  camPos.set(ORIGIN.x,ORIGIN.y+2.4,ORIGIN.z-7.2); camLook.set(ORIGIN.x,ORIGIN.y+0.5,ORIGIN.z+3.5);
+  toast('小魚とイカを食べよう！');
+}
+function toTitle(){ state='title'; killer=null; resetWorld(); clearMarkers(); $('warn').hidden=true; $('vignette').style.opacity='0'; $('bestTitle').textContent=best; show('title'); setTimeout(()=>$('startBtn').focus({preventScroll:true}),30); }
+function pauseToggle(){
+  if(state==='playing'){ state='paused'; show('pause'); for(const k in keys) keys[k]=false; pointer.down=false; setTimeout(()=>$('resumeBtn').focus({preventScroll:true}),30); }
+  else if(state==='paused'){ state='playing'; show('hud'); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }
+}
+const GAME_KEYS=['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight','ArrowUp','ArrowLeft','ArrowRight','ArrowDown'];
+addEventListener('keydown',e=>{
+  const k=e.code;
+  if((k==='KeyP'||k==='Escape')&&(state==='playing'||state==='paused')){ e.preventDefault(); pauseToggle(); return; }
+  if(k==='KeyM'){ setMute(!AU.muted); return; }
+  if(state==='playing'){ if(GAME_KEYS.includes(k)){ e.preventDefault(); keys[k]=true; inputMode='keys'; } if((k==='KeyS'||k==='ArrowDown')&&!e.repeat) startUTurn(); return; }
+  if(k==='Enter'&&(state==='title'||state==='over')&&document.activeElement===document.body){ e.preventDefault(); start(); }
+});
+addEventListener('keyup',e=>{ keys[e.code]=false; });
+addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; pointer.down=false; });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&state==='playing') pauseToggle(); });
+const cv=$('gl');
+function setPointer(e){ const r=cv.getBoundingClientRect(); pointer.x=(e.clientX-r.left)/r.width*2-1; pointer.y=-((e.clientY-r.top)/r.height*2-1); }
+let lastMove={x:0,y:0};
+cv.addEventListener('pointerdown',e=>{ if(state!=='playing') return; setPointer(e); pointer.down=true; pointer.inside=true; inputMode='mouse'; try{ cv.setPointerCapture(e.pointerId); }catch(_){} e.preventDefault(); });
+cv.addEventListener('pointermove',e=>{ setPointer(e); if(e.pointerType==='mouse'){ pointer.inside=true; if(Math.abs(e.clientX-lastMove.x)+Math.abs(e.clientY-lastMove.y)>3&&state==='playing') inputMode='mouse'; lastMove={x:e.clientX,y:e.clientY}; } });
+const up=e=>{ pointer.down=false; if(e.pointerType!=='mouse') pointer.inside=false; };
+cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
+cv.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse'&&!pointer.down) pointer.inside=false; });
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+$('startBtn').addEventListener('click',start);
+$('retryBtn').addEventListener('click',start);
+$('toTitleBtn').addEventListener('click',toTitle);
+$('resumeBtn').addEventListener('click',pauseToggle);
+$('quitBtn').addEventListener('click',toTitle);
+$('pauseBtn').addEventListener('click',e=>{ pauseToggle(); e.currentTarget.blur(); });
+$('muteBtn').addEventListener('click',e=>{ audioInit(); setMute(!AU.muted); e.currentTarget.blur(); });
+
+/* ---------- static UI ---------- */
+const DEX=[
+  {k:'makaro',name:'マカロー',tag:'あなた',cls:'you',note:'大海をさまよう人面魚'},
+  {k:'fish',name:'小魚の人面魚',tag:'食べる +3点',cls:'prey',note:'群れで泳ぐ。近づくと散る'},
+  {k:'squid',name:'イカの人面魚',tag:'食べる +5点',cls:'prey',note:'墨を吐いて急加速。直後が狙い目'},
+  {k:'octo',name:'タコの人面魚',tag:'危険',cls:'pred',note:'海底近くで待ちぶせ'},
+  {k:'kue',name:'クエの人面魚',tag:'危険',cls:'pred',note:'こちらを向いたら突進の合図'},
+  {k:'shark',name:'サメ',tag:'危険',cls:'pred',note:'速くてしつこい。急旋回でかわす'},
+  {k:'whale',name:'クジラ',tag:'危険',cls:'pred',note:'口の前に出ると丸のみ'},
+  {k:'diver',name:'ダイバー',tag:'危険',cls:'pred',note:'動きは遅いが網で捕まえる'},
+];
+$('dex').innerHTML=DEX.map(d=>`<li class="${d.cls}"><img src="${PORTRAIT_URL[d.k]||''}" alt="" width="52" height="52"><div><span class="nm">${d.name}</span><span class="tag">${d.tag}</span><span class="note">${d.note}</span></div></li>`).join('');
+$('keys').innerHTML=coarse
+  ?'<dt>長押し</dt><dd>前進</dd><dt>指の位置（左右）</dt><dd>向きを変える</dd><dt>指の位置（上下）</dt><dd>浮上・潜行</dd><dt>右上のボタン</dt><dd>一時停止・サウンド</dd>'
+  :'<dt><kbd>W</kbd><span class="or">または</span>クリック長押し</dt><dd>前進</dd><dt><kbd>A</kbd><kbd>D</kbd><span class="or">または</span>カーソル左右</dt><dd>左・右へ向きを変える</dd><dt><kbd>S</kbd></dt><dd>くるっと後ろを向く</dd><dt><kbd>Space</kbd><kbd>Shift</kbd><span class="or">または</span>カーソル上下</dt><dd>浮上・潜行</dd><dt><kbd>P</kbd><kbd>Esc</kbd></dt><dd>一時停止</dd><dt><kbd>M</kbd></dt><dd>サウンドのオン・オフ</dd>';
+$('hint').innerHTML=coarse?'長押しで前進、指の位置で向きを変える':'<kbd>W</kbd> 前進　<kbd>A</kbd><kbd>D</kbd> 旋回　<kbd>S</kbd> 反転　<kbd>Space</kbd><kbd>Shift</kbd> 上下　マウス長押しでも前進';
+$('retryHint').textContent=coarse?'':'Enter でもう一度';
+$('bestTitle').textContent=best; $('best').textContent=best; setMute(AU.muted);
+
+/* ================= loop ================= */
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); narrow=w<720; sizeSonar(); }
+addEventListener('resize',resize); resize();
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  let rdt=(now-last)/1000; last=now; if(rdt>0.1) rdt=0.1; if(rdt<0) rdt=0;
+  if(state==='paused'){ renderer.render(scene,camera); return; }
+  if(state==='dying') deathT+=rdt;
+  const dt=rdt*(state==='dying'&&deathT<1.3?0.3:1);
+  gameT+=dt; U.uTime.value=gameT;
+  if(state==='playing'){ survT+=dt; if(player.grace>0) player.grace-=dt; updatePlayer(dt); }
+  else if(state==='title') idlePlayer(dt);
+  else if(state==='dying'){ dyingPlayer(dt); if(deathT>1.8) gameOver(); }
+  updateSchools(dt);
+  for(const e of ents){ if(e.kind==='fish') updateFish(e,dt); else if(e.kind==='squid') updateSquid(e,dt); else updatePred(e,dt); }
+  if(state==='playing') checkCollisions();
+  updateCamera(rdt);
+  const cp=camera.position;
+  for(const e of ents){ const vis=e.alive&&e.pos.distanceToSquared(cp)<(e.kind==='whale'?160:115)**2; e.group.visible=vis; if(vis) animEnt(e,dt); }
+  updateEnv(dt);
+  if(state==='playing'){ updateThreats(); updateExpr(dt); updateHUD(); }
+  else if(state==='dying') updateHUD();
+  renderer.render(scene,camera);
+}
+let looping=false;
+function beginLoop(){ if(looping) return; looping=true; last=performance.now(); requestAnimationFrame(frame); }
+const photoImg=new Image();
+photoImg.onload=()=>{
+  try{ for(const k in MAKARO_EXPR){ MAKARO_TEX[k].image=photoFace(photoImg,k); MAKARO_TEX[k].needsUpdate=true; }
+    renderPortrait('makaro'); const im=document.querySelector('#dex li.you img'); if(im) im.src=PORTRAIT_URL.makaro; resize(); }catch(e){}
+  beginLoop();
+};
+photoImg.onerror=beginLoop;
+photoImg.src=MAKARO_PHOTO;
+setTimeout(beginLoop,1500);
+window.__makaro={get state(){return state;},get score(){return score;},start,ents,player,tex:MAKARO_TEX,calls:()=>renderer.info.render.calls,die:k=>{ const e=ents.find(x=>x.kind===k); if(e) die(e); }};
+})();
+</script>
+
+</body></html>
